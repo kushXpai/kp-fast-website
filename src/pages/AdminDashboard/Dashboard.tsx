@@ -26,7 +26,7 @@ interface DashboardProps {
     onNavigate: (tabId: string) => void;
 }
 
-export default function Dashboard({ player, onNavigate }: DashboardProps) {
+export default function Dashboard({}: DashboardProps) {
     return (
         <div className="flex-1 bg-gray-50 min-h-screen">
             <div className="p-6">
