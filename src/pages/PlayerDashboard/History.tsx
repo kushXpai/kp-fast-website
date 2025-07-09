@@ -68,6 +68,17 @@ interface FormSubmission {
 // }
 
 export default function History({ player }: HistoryProps) {
+  // Early return if player is not provided
+  if (!player || !player.id) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="text-center">
+          <p className="text-gray-500">Player information not available</p>
+        </div>
+      </div>
+    );
+  }
+
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +95,7 @@ export default function History({ player }: HistoryProps) {
     averageScore: 0
   });
 
-  const calculateStats = (submissions: FormSubmission[]) => {
+  const calculateStats = useCallback((submissions: FormSubmission[]) => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -119,7 +130,7 @@ export default function History({ player }: HistoryProps) {
       completed: submissions.length,
       averageScore: parseFloat(averageScore.toString())
     });
-  };
+  }, []);
 
   const fetchSubmissionHistory = useCallback(async () => {
     try {
@@ -161,8 +172,10 @@ export default function History({ player }: HistoryProps) {
 
 
   useEffect(() => {
+  if (player && player.id) {
     fetchSubmissionHistory();
-  }, [player.id, fetchSubmissionHistory]);
+  }
+}, [player, fetchSubmissionHistory]);
 
   const filterSubmissions = useCallback(() => {
     let filtered = [...submissions];
