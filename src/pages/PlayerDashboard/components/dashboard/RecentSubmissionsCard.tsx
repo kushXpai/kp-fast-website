@@ -33,6 +33,9 @@ interface FormSubmission {
 }
 
 export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubmissionsCardProps) {
+    if (!player || !player.id) {
+        return null;
+    }
     const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
