@@ -25,6 +25,9 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ player, onNavigate }: DashboardProps) {
+
+    if (!player) return null;
+    
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
     };
