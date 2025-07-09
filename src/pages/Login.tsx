@@ -6,20 +6,20 @@ import bcrypt from 'bcryptjs';
 import { useRouter } from 'next/router';
 import { Eye, EyeOff, User, Mail, Lock, UserCheck } from 'lucide-react';
 
-interface Player {
-  id: string;
-  name: string;
-  mobile_number: string;
-  username: string;
-  email: string;
-  date_of_birth: string;
-  batch: string;
-  batter_type: string;
-  player_role: string;
-  bowler_type: string;
-  is_approved: boolean;
-  created_at: string;
-}
+// interface Player {
+//   id: string;
+//   name: string;
+//   mobile_number: string;
+//   username: string;
+//   email: string;
+//   date_of_birth: string;
+//   batch: string;
+//   batter_type: string;
+//   player_role: string;
+//   bowler_type: string;
+//   is_approved: boolean;
+//   created_at: string;
+// }
 
 export default function PlayerLogin() {
   const [email, setEmail] = useState('');
@@ -28,7 +28,7 @@ export default function PlayerLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: any) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     

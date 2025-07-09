@@ -233,7 +233,7 @@ export default function WellnessForm({ player }: WellnessFormProps) {
                                     Physical Readiness <span className="text-red-500">*</span>
                                 </h3>
                             </div>
-                            <p className="text-gray-600 mb-4">How physically ready do you feel for today's session?</p>
+                            <p className="text-gray-600 mb-4">How physically ready do you feel for today&rsquo;s session?</p>
                             <div className="grid grid-cols-5 gap-3">
                                 <RatingButton
                                     value="1"

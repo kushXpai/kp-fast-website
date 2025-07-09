@@ -32,14 +32,10 @@ interface FormSubmission {
     status: 'completed';
 }
 
-export default function RecentSubmissionsCard({ player, onViewFullProfile, onNavigate }: RecentSubmissionsCardProps) {
+export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubmissionsCardProps) {
     const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        fetchRecentSubmissions();
-    }, [player.id]);
 
     const fetchRecentSubmissions = async () => {
         try {
@@ -124,6 +120,10 @@ export default function RecentSubmissionsCard({ player, onViewFullProfile, onNav
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchRecentSubmissions();
+    }, [player.id, fetchRecentSubmissions]);
 
     const getFormDisplayName = (formType: string) => {
         switch (formType) {

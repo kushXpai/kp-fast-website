@@ -36,7 +36,7 @@ type NavigationProps = {
   onClose: () => void;
 };
 
-const Navigation = ({ activeTab, onTabChange, player, onLogout, isOpen, onClose }: NavigationProps) => {
+const Navigation = ({ activeTab, onTabChange, player, isOpen, onClose }: NavigationProps) => {
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };

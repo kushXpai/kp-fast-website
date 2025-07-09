@@ -23,34 +23,34 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      const hashedPassword = await bcrypt.hash(form.password, 10);
-      
-      // Prepare the data, ensuring bowler_type is null if empty
-      const playerData = {
-        ...form,
-        password: hashedPassword,
-        bowler_type: form.bowler_type === '' ? null : form.bowler_type, // Convert empty string to null
-      };
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setIsLoading(true);
 
-      const { error } = await supabase.from('players').insert([playerData]);
+  try {
+    const hashedPassword = await bcrypt.hash(form.password, 10);
 
-      if (!error) {
-        alert('Signup successful! Wait for approval.');
-        router.push('/Login');
-      } else {
-        alert(error.message);
-      }
-    } catch (error) {
-      alert('Signup failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    const playerData = {
+      ...form,
+      password: hashedPassword,
+      bowler_type: form.bowler_type === '' ? null : form.bowler_type,
+    };
+
+    const { error } = await supabase.from('players').insert([playerData]);
+
+    if (!error) {
+      alert('Signup successful! Wait for approval.');
+      router.push('/Login');
+    } else {
+      alert(error.message);
     }
-  };
+  } catch (err) {
+    console.error('Signup error:', err);
+    alert('Signup failed. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleInputChange = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -259,7 +259,7 @@ export default function SignUp() {
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-300 pointer-events-none" />
                   </div>
                   <p className="text-xs text-gray-400">
-                    Leave as default if you don't bowl or specialize in bowling
+                    Leave as default if you don&rsquo;t bowl or specialize in bowling
                   </p>
                 </div>
 
@@ -290,7 +290,7 @@ export default function SignUp() {
                   </div>
                   <div className="text-sm text-orange-200">
                     <p className="font-medium mb-1">Account Approval Required</p>
-                    <p>Your account will be reviewed by an admin before activation. You'll receive an email notification once approved.</p>
+                    <p>Your account will be reviewed by an admin before activation. You&rsquo;ll receive an email notification once approved.</p>
                   </div>
                 </div>
               </div>

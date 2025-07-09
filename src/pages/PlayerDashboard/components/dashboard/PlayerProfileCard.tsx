@@ -32,36 +32,36 @@ export default function PlayerProfileCard({ player, onViewFullProfile }: PlayerP
         });
     };
 
-    const getRoleIcon = (role: string) => {
-        switch (role.toLowerCase()) {
-            case 'batsman':
-            case 'batter':
-                return (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M15.5 5.5L18 8l-7 7-2.5-2.5L15.5 5.5zm-1.41 1.41L9.5 11.5l1 1 4.59-4.59-1-1zM7 18c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z" />
-                    </svg>
-                );
-            case 'bowler':
-                return (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10" />
-                        <circle cx="12" cy="12" r="4" />
-                    </svg>
-                );
-            case 'allrounder':
-                return (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                    </svg>
-                );
-            default:
-                return (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                    </svg>
-                );
-        }
-    };
+    // const getRoleIcon = (role: string) => {
+    //     switch (role.toLowerCase()) {
+    //         case 'batsman':
+    //         case 'batter':
+    //             return (
+    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+    //                     <path d="M15.5 5.5L18 8l-7 7-2.5-2.5L15.5 5.5zm-1.41 1.41L9.5 11.5l1 1 4.59-4.59-1-1zM7 18c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z" />
+    //                 </svg>
+    //             );
+    //         case 'bowler':
+    //             return (
+    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+    //                     <circle cx="12" cy="12" r="10" />
+    //                     <circle cx="12" cy="12" r="4" />
+    //                 </svg>
+    //             );
+    //         case 'allrounder':
+    //             return (
+    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+    //                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+    //                 </svg>
+    //             );
+    //         default:
+    //             return (
+    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+    //                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+    //                 </svg>
+    //             );
+    //     }
+    // };
 
     return (
         <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">

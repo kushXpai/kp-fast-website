@@ -1,7 +1,5 @@
 // src/pages/PlayerDashboard/Forms.tsx
 
-import { colors } from "../../lib/colors";
-
 interface Player {
   id: string;
   name: string;
@@ -22,7 +20,7 @@ interface FormsProps {
   onNavigate: (tabId: string) => void; // Add this prop for navigation
 }
 
-export default function Forms({ player, onNavigate }: FormsProps) {
+export default function Forms({ onNavigate }: FormsProps) {
   return (
     <div className="flex-1 p-7 bg-gray-50">
       <div className="max-w-7xl mx-auto">

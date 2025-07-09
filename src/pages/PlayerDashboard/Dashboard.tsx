@@ -3,7 +3,6 @@
 import { colors } from "../../lib/colors";
 import PlayerProfileCard from "./components/dashboard/PlayerProfileCard";
 import RecentSubmissionsCard from "./components/dashboard/RecentSubmissionsCard";
-import StatsCard from "./components/dashboard/StatsCard";
 
 interface Player {
     id: string;
@@ -30,13 +29,13 @@ export default function Dashboard({ player, onNavigate }: DashboardProps) {
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
+    // const formatDate = (dateString: string) => {
+    //     return new Date(dateString).toLocaleDateString('en-US', {
+    //         year: 'numeric',
+    //         month: 'long',
+    //         day: 'numeric'
+    //     });
+    // };
 
     const handleViewFullProfile = () => {
         onNavigate('history');
@@ -62,7 +61,7 @@ export default function Dashboard({ player, onNavigate }: DashboardProps) {
                             </div>
                         </div>
                         <div>
-                            <p className="text-blue-100 text-sm mb-2">Today's Progress</p>
+                            <p className="text-blue-100 text-sm mb-2">Today&rsquo;s Progress</p>
                             <div className="flex items-center space-x-3">
                                 <div className="flex-1 h-3 bg-white bg-opacity-20 rounded-full overflow-hidden">
                                     <div
@@ -221,7 +220,7 @@ export default function Dashboard({ player, onNavigate }: DashboardProps) {
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-blue-100 text-sm mb-2">Today's Progress</p>
+                            <p className="text-blue-100 text-sm mb-2">Today&rsquo;s Progress</p>
                             <div className="flex items-center space-x-3">
                                 <div className="w-24 h-3 bg-white bg-opacity-20 rounded-full overflow-hidden">
                                     <div

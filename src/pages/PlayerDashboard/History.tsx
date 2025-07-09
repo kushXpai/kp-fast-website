@@ -28,42 +28,43 @@ interface FormSubmission {
   date: string;
   created_at: string;
   status: 'completed';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   details?: any;
 }
 
-interface FormDetails {
-  hydration?: {
-    session_type: string;
-    session_number: number;
-    pre_session_weight: number;
-    post_session_weight: number;
-    liquid_consumed: number;
-    urination_output: number;
-    comments?: string;
-  };
-  monitoring?: {
-    session_number: number;
-    session_type: string;
-    session_duration: number;
-    session_intensity: string;
-    balls_bowled?: number;
-    comments?: string;
-  };
-  wellness?: {
-    sleep_quality: string;
-    physical_readiness: string;
-    mood: string;
-    mental_alertness: string;
-    muscle_soreness: string;
-    menstrual_cycle?: string;
-    comments?: string;
-  };
-  recovery?: {
-    recovery_methods: string[];
-    injury_present: string;
-    comments?: string;
-  };
-}
+// interface FormDetails {
+//   hydration?: {
+//     session_type: string;
+//     session_number: number;
+//     pre_session_weight: number;
+//     post_session_weight: number;
+//     liquid_consumed: number;
+//     urination_output: number;
+//     comments?: string;
+//   };
+//   monitoring?: {
+//     session_number: number;
+//     session_type: string;
+//     session_duration: number;
+//     session_intensity: string;
+//     balls_bowled?: number;
+//     comments?: string;
+//   };
+//   wellness?: {
+//     sleep_quality: string;
+//     physical_readiness: string;
+//     mood: string;
+//     mental_alertness: string;
+//     muscle_soreness: string;
+//     menstrual_cycle?: string;
+//     comments?: string;
+//   };
+//   recovery?: {
+//     recovery_methods: string[];
+//     injury_present: string;
+//     comments?: string;
+//   };
+// }
 
 export default function History({ player }: HistoryProps) {
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
@@ -81,14 +82,6 @@ export default function History({ player }: HistoryProps) {
     completed: 0,
     averageScore: 0
   });
-
-  useEffect(() => {
-    fetchSubmissionHistory();
-  }, [player.id]);
-
-  useEffect(() => {
-    filterSubmissions();
-  }, [submissions, searchTerm, selectedFormType, selectedTimeRange]);
 
   const fetchSubmissionHistory = async () => {
     try {
@@ -178,6 +171,56 @@ export default function History({ player }: HistoryProps) {
     }
   };
 
+  useEffect(() => {
+    fetchSubmissionHistory();
+  }, [player.id, fetchSubmissionHistory]);
+
+  const filterSubmissions = () => {
+    let filtered = [...submissions];
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(sub =>
+        getFormDisplayName(sub.form_type).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.form_type.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by form type
+    if (selectedFormType !== 'All Forms') {
+      filtered = filtered.filter(sub =>
+        getFormDisplayName(sub.form_type) === selectedFormType ||
+        sub.form_type === selectedFormType.toLowerCase()
+      );
+    }
+
+    // Filter by time range
+    if (selectedTimeRange !== 'All Time') {
+      const now = new Date();
+      const cutoffDate = new Date();
+
+      switch (selectedTimeRange) {
+        case 'Last 7 Days':
+          cutoffDate.setDate(now.getDate() - 7);
+          break;
+        case 'Last 30 Days':
+          cutoffDate.setDate(now.getDate() - 30);
+          break;
+        case 'Last 3 Months':
+          cutoffDate.setMonth(now.getMonth() - 3);
+          break;
+      }
+
+      filtered = filtered.filter(sub => new Date(sub.created_at) >= cutoffDate);
+    }
+
+    setFilteredSubmissions(filtered);
+  };
+
+  useEffect(() => {
+    filterSubmissions();
+  }, [submissions, searchTerm, selectedFormType, selectedTimeRange, filterSubmissions]);
+
   const calculateStats = (submissions: FormSubmission[]) => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -213,48 +256,6 @@ export default function History({ player }: HistoryProps) {
       completed: submissions.length,
       averageScore: parseFloat(averageScore.toString())
     });
-  };
-
-  const filterSubmissions = () => {
-    let filtered = [...submissions];
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(sub =>
-        getFormDisplayName(sub.form_type).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.form_type.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filter by form type
-    if (selectedFormType !== 'All Forms') {
-      filtered = filtered.filter(sub =>
-        getFormDisplayName(sub.form_type) === selectedFormType ||
-        sub.form_type === selectedFormType.toLowerCase()
-      );
-    }
-
-    // Filter by time range
-    if (selectedTimeRange !== 'All Time') {
-      const now = new Date();
-      let cutoffDate = new Date();
-
-      switch (selectedTimeRange) {
-        case 'Last 7 Days':
-          cutoffDate.setDate(now.getDate() - 7);
-          break;
-        case 'Last 30 Days':
-          cutoffDate.setDate(now.getDate() - 30);
-          break;
-        case 'Last 3 Months':
-          cutoffDate.setMonth(now.getMonth() - 3);
-          break;
-      }
-
-      filtered = filtered.filter(sub => new Date(sub.created_at) >= cutoffDate);
-    }
-
-    setFilteredSubmissions(filtered);
   };
 
   const getFormDisplayName = (formType: string) => {
@@ -694,7 +695,7 @@ export default function History({ player }: HistoryProps) {
           <div className="space-y-3">
             <div className="flex items-center text-sm text-gray-700">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-              You've been consistent with form submissions
+              You&rsquo;ve been consistent with form submissions
             </div>
             <div className="flex items-center text-sm text-gray-700">
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>

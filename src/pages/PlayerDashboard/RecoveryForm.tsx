@@ -203,7 +203,7 @@ export default function RecoveryForm({ player }: RecoveryFormProps) {
                                 </svg>
                                 <h3 className="text-lg font-semibold text-gray-900">Injury Present <span className="text-red-500">*</span></h3>
                             </div>
-                            <p className="text-gray-600 mb-4">Indicate if there's any injury present</p>
+                            <p className="text-gray-600 mb-4">Indicate if there&rsquo;s any injury present</p>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <label

@@ -21,16 +21,16 @@ interface StatsCardProps {
 }
 
 export default function StatsCard({ player, onViewFullProfile }: StatsCardProps) {
-    const getInitials = (name: string) => {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase();
-    };
+    // const getInitials = (name: string) => {
+    //     return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    // };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long'
-        });
-    };
+    // const formatDate = (dateString: string) => {
+    //     return new Date(dateString).toLocaleDateString('en-US', {
+    //         year: 'numeric',
+    //         month: 'long'
+    //     });
+    // };
 
     return (
         <div className="grid grid-cols-3 gap-4">
