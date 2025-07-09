@@ -14,11 +14,7 @@ interface PendingPlayer {
     mobile_number: string | null;
 }
 
-interface PendingPlayerApprovalsProps {
-    onNavigate?: (tabId: string) => void;
-}
-
-export default function PendingPlayerApprovals({ onNavigate }: PendingPlayerApprovalsProps) {
+export default function PendingPlayerApprovals() {
     const [pendingPlayers, setPendingPlayers] = useState<PendingPlayer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

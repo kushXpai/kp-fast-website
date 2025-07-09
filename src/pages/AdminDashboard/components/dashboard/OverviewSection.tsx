@@ -9,6 +9,19 @@ interface OverviewStats {
     activePlayers: number;
 }
 
+interface FormData {
+    id: string;
+    player_id?: string;
+}
+
+interface WellnessFormData {
+    sleep_quality: string;
+    physical_readiness: string;
+    mood: string;
+    mental_alertness: string;
+    muscle_soreness: string;
+}
+
 export default function OverviewSection() {
     const [stats, setStats] = useState<OverviewStats>({
         formSubmissions: 0,
@@ -72,12 +85,13 @@ export default function OverviewSection() {
             let avgWellnessScore = 0;
             if (wellnessData && wellnessData.length > 0) {
                 const totalScores = wellnessData.reduce((acc, form) => {
+                    const wellnessForm = form as WellnessFormData;
                     return acc + 
-                        parseInt(form.sleep_quality) +
-                        parseInt(form.physical_readiness) +
-                        parseInt(form.mood) +
-                        parseInt(form.mental_alertness) +
-                        parseInt(form.muscle_soreness);
+                        parseInt(wellnessForm.sleep_quality) +
+                        parseInt(wellnessForm.physical_readiness) +
+                        parseInt(wellnessForm.mood) +
+                        parseInt(wellnessForm.mental_alertness) +
+                        parseInt(wellnessForm.muscle_soreness);
                 }, 0);
                 avgWellnessScore = totalScores / (wellnessData.length * 5); // 5 categories per form
             }
@@ -90,10 +104,10 @@ export default function OverviewSection() {
             if (activePlayersError) {
                 // Alternative approach: get unique player IDs from today's form submissions
                 const uniquePlayerIds = new Set([
-                    ...(wellnessResult.data?.map((form: any) => form.player_id) || []),
-                    ...(monitoringResult.data?.map((form: any) => form.player_id) || []),
-                    ...(hydrationResult.data?.map((form: any) => form.player_id) || []),
-                    ...(recoveryResult.data?.map((form: any) => form.player_id) || [])
+                    ...(wellnessResult.data?.map((form: FormData) => form.player_id).filter(Boolean) || []),
+                    ...(monitoringResult.data?.map((form: FormData) => form.player_id).filter(Boolean) || []),
+                    ...(hydrationResult.data?.map((form: FormData) => form.player_id).filter(Boolean) || []),
+                    ...(recoveryResult.data?.map((form: FormData) => form.player_id).filter(Boolean) || [])
                 ]);
 
                 setStats({
@@ -120,7 +134,7 @@ export default function OverviewSection() {
     if (loading) {
         return (
             <div className="bg-gradient-to-r from-green-800 to-blue-900 rounded-xl p-4 md:p-6 mb-6">
-                <h2 className="text-white text-lg font-semibold mb-4">Today's Overview</h2>
+                <h2 className="text-white text-lg font-semibold mb-4">Today&rsquo;s Overview</h2>
                 <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6">
                     {[1, 2, 3].map((i) => (
                         <div key={i} className="p-4 text-center">
@@ -138,7 +152,7 @@ export default function OverviewSection() {
     if (error) {
         return (
             <div className="bg-gradient-to-r from-red-800 to-red-900 rounded-xl p-4 md:p-6 mb-6">
-                <h2 className="text-white text-lg font-semibold mb-4">Today's Overview</h2>
+                <h2 className="text-white text-lg font-semibold mb-4">Today&rsquo;s Overview</h2>
                 <div className="text-red-200 text-sm text-center">{error}</div>
             </div>
         );
@@ -146,7 +160,7 @@ export default function OverviewSection() {
 
     return (
         <div className="bg-gradient-to-r from-green-800 to-blue-900 rounded-xl p-4 md:p-6 mb-6">
-            <h2 className="text-white text-lg font-semibold mb-4">Today's Overview</h2>
+            <h2 className="text-white text-lg font-semibold mb-4">Today&rsquo;s Overview</h2>
 
             {/* Use responsive grid layout */}
             <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6">

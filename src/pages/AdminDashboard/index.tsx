@@ -30,7 +30,7 @@ type NavigationProps = {
   onClose: () => void;
 };
 
-const Navigation = ({ activeTab, onTabChange, player, onLogout, isOpen, onClose }: NavigationProps) => {
+const Navigation = ({ activeTab, onTabChange, onLogout, isOpen, onClose }: NavigationProps) => {
 
 
   const handleTabClick = (tabId: string) => {
@@ -248,10 +248,10 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard player={player} onNavigate={setActiveTab} />;
-      case 'players':
-        return <PendingApprovals player={player} onNavigate={handleTabChange} />;
+      // case 'players':
+      //   return <PendingApprovals player={player} onNavigate={handleTabChange} />;
       case 'pending-approvals':
-        return <PendingApprovals player={player} onNavigate={handleTabChange} />;
+        return <PendingApprovals onNavigate={handleTabChange} />;
       case 'programs':
         return <div>Programs Component</div>;
       case 'tests':

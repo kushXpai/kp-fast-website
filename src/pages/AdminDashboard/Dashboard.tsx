@@ -1,11 +1,10 @@
 // src/pages/PlayerDashboard/Dashboard.tsx
 
-import { colors } from "../../lib/colors";
 import OverviewSection from "./components/dashboard/OverviewSection";
 import PlayerStatistics from "./components/dashboard/PlayerStatistics";
 import QuickActions from "./components/dashboard/QuickActions";
 import PendingPlayerApprovals from "./components/dashboard/PendingPlayerApprovals";
-import RecentReports from "./components/dashboard/RecentReports";
+// import RecentReports from "./components/dashboard/RecentReports";
 
 interface Player {
     id: string;

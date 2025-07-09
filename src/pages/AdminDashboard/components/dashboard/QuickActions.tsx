@@ -1,7 +1,5 @@
 // src/pages/AdminDashboard/components/dashboard/QuickActions.tsx
 
-import { colors } from "../../../../lib/colors";
-
 export default function QuickActions() {
     const actions = [
         {
