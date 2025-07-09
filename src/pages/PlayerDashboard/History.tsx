@@ -33,52 +33,8 @@ interface FormSubmission {
   details?: any;
 }
 
-// interface FormDetails {
-//   hydration?: {
-//     session_type: string;
-//     session_number: number;
-//     pre_session_weight: number;
-//     post_session_weight: number;
-//     liquid_consumed: number;
-//     urination_output: number;
-//     comments?: string;
-//   };
-//   monitoring?: {
-//     session_number: number;
-//     session_type: string;
-//     session_duration: number;
-//     session_intensity: string;
-//     balls_bowled?: number;
-//     comments?: string;
-//   };
-//   wellness?: {
-//     sleep_quality: string;
-//     physical_readiness: string;
-//     mood: string;
-//     mental_alertness: string;
-//     muscle_soreness: string;
-//     menstrual_cycle?: string;
-//     comments?: string;
-//   };
-//   recovery?: {
-//     recovery_methods: string[];
-//     injury_present: string;
-//     comments?: string;
-//   };
-// }
-
 export default function History({ player }: HistoryProps) {
-  // Early return if player is not provided
-  if (!player || !player.id) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="text-center">
-          <p className="text-gray-500">Player information not available</p>
-        </div>
-      </div>
-    );
-  }
-
+  // ALL HOOKS MUST BE DECLARED FIRST, BEFORE ANY EARLY RETURNS
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,6 +89,8 @@ export default function History({ player }: HistoryProps) {
   }, []);
 
   const fetchSubmissionHistory = useCallback(async () => {
+    if (!player?.id) return;
+
     try {
       setLoading(true);
       setError(null);
@@ -168,14 +126,13 @@ export default function History({ player }: HistoryProps) {
     } finally {
       setLoading(false);
     }
-  }, [player.id, calculateStats]);
-
+  }, [player?.id, calculateStats]);
 
   useEffect(() => {
-  if (player && player.id) {
-    fetchSubmissionHistory();
-  }
-}, [player, fetchSubmissionHistory]);
+    if (player?.id) {
+      fetchSubmissionHistory();
+    }
+  }, [player, fetchSubmissionHistory]);
 
   const filterSubmissions = useCallback(() => {
     let filtered = [...submissions];
@@ -216,10 +173,20 @@ export default function History({ player }: HistoryProps) {
     setFilteredSubmissions(filtered);
   }, [submissions, searchTerm, selectedFormType, selectedTimeRange]);
 
-
   useEffect(() => {
     filterSubmissions();
   }, [submissions, searchTerm, selectedFormType, selectedTimeRange, filterSubmissions]);
+
+  // NOW we can do the early return check AFTER all hooks are declared
+  if (!player || !player.id) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="text-center">
+          <p className="text-gray-500">Player information not available</p>
+        </div>
+      </div>
+    );
+  }
 
   const getFormDisplayName = (formType: string) => {
     switch (formType) {
