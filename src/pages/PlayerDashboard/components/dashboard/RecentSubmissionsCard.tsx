@@ -41,30 +41,31 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
     const [error, setError] = useState<string | null>(null);
 
     const fetchRecentSubmissions = useCallback(async () => {
+        if (!player?.id) return;
+
         try {
             setLoading(true);
             setError(null);
 
-            // Fetch all form types for the player
             const [hydrationResponse, monitoringResponse, wellnessResponse, recoveryResponse] = await Promise.all([
                 supabase
                     .from('hydration_forms')
                     .select('id, date, created_at')
                     .eq('player_id', player.id)
                     .order('created_at', { ascending: false }),
-                
+
                 supabase
                     .from('monitoring_forms')
                     .select('id, date, created_at')
                     .eq('player_id', player.id)
                     .order('created_at', { ascending: false }),
-                
+
                 supabase
                     .from('wellness_forms')
                     .select('id, date, created_at')
                     .eq('player_id', player.id)
                     .order('created_at', { ascending: false }),
-                
+
                 supabase
                     .from('recovery_forms')
                     .select('id, date, created_at')
@@ -72,13 +73,11 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
                     .order('created_at', { ascending: false })
             ]);
 
-            // Check for errors
             if (hydrationResponse.error) throw hydrationResponse.error;
             if (monitoringResponse.error) throw monitoringResponse.error;
             if (wellnessResponse.error) throw wellnessResponse.error;
             if (recoveryResponse.error) throw recoveryResponse.error;
 
-            // Combine all submissions with their form types
             const allSubmissions: FormSubmission[] = [
                 ...(hydrationResponse.data || []).map(item => ({
                     id: item.id,
@@ -110,7 +109,6 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
                 }))
             ];
 
-            // Sort by created_at and get the latest 4
             const sortedSubmissions = allSubmissions
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                 .slice(0, 4);
@@ -122,7 +120,7 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
         } finally {
             setLoading(false);
         }
-    }, [player.id]);
+    }, [player?.id]);
 
     useEffect(() => {
         fetchRecentSubmissions();
@@ -188,16 +186,16 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
         } else if (diffInHours < 24) {
             return `${diffInHours} hours ago`;
         } else if (diffInDays === 0) {
-            return `Today, ${date.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
+            return `Today, ${date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
                 minute: '2-digit',
-                hour12: true 
+                hour12: true
             })}`;
         } else if (diffInDays === 1) {
-            return `Yesterday, ${date.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
+            return `Yesterday, ${date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
                 minute: '2-digit',
-                hour12: true 
+                hour12: true
             })}`;
         } else {
             return date.toLocaleDateString('en-US', {
@@ -251,7 +249,7 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
                         </svg>
                     </div>
                     <p className="text-sm text-gray-500">{error}</p>
-                    <button 
+                    <button
                         onClick={fetchRecentSubmissions}
                         className="mt-2 text-sm text-blue-600 hover:text-blue-800"
                     >
@@ -267,7 +265,7 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Recent Submissions</h3>
             </div>
-            
+
             {submissions.length === 0 ? (
                 <div className="text-center py-8">
                     <div className="text-gray-400 mb-2">
@@ -305,7 +303,7 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
 
             {submissions.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                    <button 
+                    <button
                         onClick={handleViewAll}
                         className="w-full text-sm text-gray-600 hover:text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors"
                     >
