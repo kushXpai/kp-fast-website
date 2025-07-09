@@ -20,7 +20,7 @@ interface StatsCardProps {
     onViewFullProfile: () => void;
 }
 
-export default function StatsCard({ player, onViewFullProfile }: StatsCardProps) {
+export default function StatsCard({ }: StatsCardProps) {
     // const getInitials = (name: string) => {
     //     return name.split(' ').map(n => n[0]).join('').toUpperCase();
     // };

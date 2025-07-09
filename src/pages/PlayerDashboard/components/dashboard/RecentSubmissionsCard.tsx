@@ -1,6 +1,6 @@
 // src/pages/PlayerDashboard/components/dashboard/RecentSubmissionsCard.tsx
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
 
 interface Player {
@@ -37,7 +37,7 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchRecentSubmissions = async () => {
+    const fetchRecentSubmissions = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -119,7 +119,7 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
         } finally {
             setLoading(false);
         }
-    };
+    }, [player.id]);
 
     useEffect(() => {
         fetchRecentSubmissions();

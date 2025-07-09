@@ -1,6 +1,7 @@
 // src/pages/PlayerDashboard/History.tsx
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import { supabase } from '../../lib/supabaseClient';
 
 interface Player {
@@ -83,144 +84,6 @@ export default function History({ player }: HistoryProps) {
     averageScore: 0
   });
 
-  const fetchSubmissionHistory = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Fetch all form types for the player
-      const [hydrationResponse, monitoringResponse, wellnessResponse, recoveryResponse] = await Promise.all([
-        supabase
-          .from('hydration_forms')
-          .select('*')
-          .eq('player_id', player.id)
-          .order('created_at', { ascending: false }),
-
-        supabase
-          .from('monitoring_forms')
-          .select('*')
-          .eq('player_id', player.id)
-          .order('created_at', { ascending: false }),
-
-        supabase
-          .from('wellness_forms')
-          .select('*')
-          .eq('player_id', player.id)
-          .order('created_at', { ascending: false }),
-
-        supabase
-          .from('recovery_forms')
-          .select('*')
-          .eq('player_id', player.id)
-          .order('created_at', { ascending: false })
-      ]);
-
-      // Check for errors
-      if (hydrationResponse.error) throw hydrationResponse.error;
-      if (monitoringResponse.error) throw monitoringResponse.error;
-      if (wellnessResponse.error) throw wellnessResponse.error;
-      if (recoveryResponse.error) throw recoveryResponse.error;
-
-      // Combine all submissions with their form types and details
-      const allSubmissions: FormSubmission[] = [
-        ...(hydrationResponse.data || []).map(item => ({
-          id: item.id,
-          form_type: 'hydration' as const,
-          date: item.date,
-          created_at: item.created_at,
-          status: 'completed' as const,
-          details: item
-        })),
-        ...(monitoringResponse.data || []).map(item => ({
-          id: item.id,
-          form_type: 'monitoring' as const,
-          date: item.date,
-          created_at: item.created_at,
-          status: 'completed' as const,
-          details: item
-        })),
-        ...(wellnessResponse.data || []).map(item => ({
-          id: item.id,
-          form_type: 'wellness' as const,
-          date: item.date,
-          created_at: item.created_at,
-          status: 'completed' as const,
-          details: item
-        })),
-        ...(recoveryResponse.data || []).map(item => ({
-          id: item.id,
-          form_type: 'recovery' as const,
-          date: item.date,
-          created_at: item.created_at,
-          status: 'completed' as const,
-          details: item
-        }))
-      ];
-
-      // Sort by created_at
-      const sortedSubmissions = allSubmissions
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      setSubmissions(sortedSubmissions);
-      calculateStats(sortedSubmissions);
-    } catch (err) {
-      console.error('Error fetching submission history:', err);
-      setError('Failed to load submission history');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSubmissionHistory();
-  }, [player.id, fetchSubmissionHistory]);
-
-  const filterSubmissions = () => {
-    let filtered = [...submissions];
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(sub =>
-        getFormDisplayName(sub.form_type).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.form_type.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filter by form type
-    if (selectedFormType !== 'All Forms') {
-      filtered = filtered.filter(sub =>
-        getFormDisplayName(sub.form_type) === selectedFormType ||
-        sub.form_type === selectedFormType.toLowerCase()
-      );
-    }
-
-    // Filter by time range
-    if (selectedTimeRange !== 'All Time') {
-      const now = new Date();
-      const cutoffDate = new Date();
-
-      switch (selectedTimeRange) {
-        case 'Last 7 Days':
-          cutoffDate.setDate(now.getDate() - 7);
-          break;
-        case 'Last 30 Days':
-          cutoffDate.setDate(now.getDate() - 30);
-          break;
-        case 'Last 3 Months':
-          cutoffDate.setMonth(now.getMonth() - 3);
-          break;
-      }
-
-      filtered = filtered.filter(sub => new Date(sub.created_at) >= cutoffDate);
-    }
-
-    setFilteredSubmissions(filtered);
-  };
-
-  useEffect(() => {
-    filterSubmissions();
-  }, [submissions, searchTerm, selectedFormType, selectedTimeRange, filterSubmissions]);
-
   const calculateStats = (submissions: FormSubmission[]) => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -257,6 +120,93 @@ export default function History({ player }: HistoryProps) {
       averageScore: parseFloat(averageScore.toString())
     });
   };
+
+  const fetchSubmissionHistory = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [hydrationResponse, monitoringResponse, wellnessResponse, recoveryResponse] = await Promise.all([
+        supabase.from('hydration_forms').select('*').eq('player_id', player.id).order('created_at', { ascending: false }),
+        supabase.from('monitoring_forms').select('*').eq('player_id', player.id).order('created_at', { ascending: false }),
+        supabase.from('wellness_forms').select('*').eq('player_id', player.id).order('created_at', { ascending: false }),
+        supabase.from('recovery_forms').select('*').eq('player_id', player.id).order('created_at', { ascending: false })
+      ]);
+
+      if (hydrationResponse.error) throw hydrationResponse.error;
+      if (monitoringResponse.error) throw monitoringResponse.error;
+      if (wellnessResponse.error) throw wellnessResponse.error;
+      if (recoveryResponse.error) throw recoveryResponse.error;
+
+      const allSubmissions: FormSubmission[] = [
+        ...(hydrationResponse.data || []).map(item => ({ ...item, form_type: 'hydration', status: 'completed', details: item })),
+        ...(monitoringResponse.data || []).map(item => ({ ...item, form_type: 'monitoring', status: 'completed', details: item })),
+        ...(wellnessResponse.data || []).map(item => ({ ...item, form_type: 'wellness', status: 'completed', details: item })),
+        ...(recoveryResponse.data || []).map(item => ({ ...item, form_type: 'recovery', status: 'completed', details: item }))
+      ];
+
+      const sortedSubmissions = allSubmissions.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setSubmissions(sortedSubmissions);
+      calculateStats(sortedSubmissions);
+    } catch (err) {
+      console.error('Error fetching submission history:', err);
+      setError('Failed to load submission history');
+    } finally {
+      setLoading(false);
+    }
+  }, [player.id, calculateStats]);
+
+
+  useEffect(() => {
+    fetchSubmissionHistory();
+  }, [player.id, fetchSubmissionHistory]);
+
+  const filterSubmissions = useCallback(() => {
+    let filtered = [...submissions];
+
+    if (searchTerm) {
+      filtered = filtered.filter(sub =>
+        getFormDisplayName(sub.form_type).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.form_type.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedFormType !== 'All Forms') {
+      filtered = filtered.filter(sub =>
+        getFormDisplayName(sub.form_type) === selectedFormType ||
+        sub.form_type === selectedFormType.toLowerCase()
+      );
+    }
+
+    if (selectedTimeRange !== 'All Time') {
+      const now = new Date();
+      const cutoffDate = new Date();
+
+      switch (selectedTimeRange) {
+        case 'Last 7 Days':
+          cutoffDate.setDate(now.getDate() - 7);
+          break;
+        case 'Last 30 Days':
+          cutoffDate.setDate(now.getDate() - 30);
+          break;
+        case 'Last 3 Months':
+          cutoffDate.setMonth(now.getMonth() - 3);
+          break;
+      }
+
+      filtered = filtered.filter(sub => new Date(sub.created_at) >= cutoffDate);
+    }
+
+    setFilteredSubmissions(filtered);
+  }, [submissions, searchTerm, selectedFormType, selectedTimeRange]);
+
+
+  useEffect(() => {
+    filterSubmissions();
+  }, [submissions, searchTerm, selectedFormType, selectedTimeRange, filterSubmissions]);
 
   const getFormDisplayName = (formType: string) => {
     switch (formType) {
