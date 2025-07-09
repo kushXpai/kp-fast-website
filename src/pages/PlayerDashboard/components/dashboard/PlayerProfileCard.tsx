@@ -16,52 +16,59 @@ interface Player {
 }
 
 interface PlayerProfileCardProps {
-    player: Player;
-    onViewFullProfile: () => void;
+    player?: Player;
+    onViewFullProfile?: () => void;
 }
 
-export default function PlayerProfileCard({ player, onViewFullProfile }: PlayerProfileCardProps) {
+// Default props for when this component is accessed as a page
+const defaultPlayer: Player = {
+    id: "default",
+    name: "Default Player",
+    mobile_number: "+1234567890",
+    username: "defaultuser",
+    email: "default@example.com",
+    date_of_birth: "1990-01-01",
+    batch: "2024",
+    batter_type: "Right-handed",
+    player_role: "All-rounder",
+    bowler_type: "Right-arm medium",
+    is_approved: true,
+    created_at: new Date().toISOString()
+};
+
+export default function PlayerProfileCard({ 
+    player = defaultPlayer, 
+    onViewFullProfile = () => {} 
+}: PlayerProfileCardProps) {
+    if (!player) {
+        return (
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                        <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
+                        <p className="text-gray-500">Loading player profile...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const getInitials = (name: string) => {
+        if (!name) return "N/A";
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long'
-        });
+        if (!dateString) return "N/A";
+        try {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long'
+            });
+        } catch (error) {
+            return "Invalid date";
+        }
     };
-
-    // const getRoleIcon = (role: string) => {
-    //     switch (role.toLowerCase()) {
-    //         case 'batsman':
-    //         case 'batter':
-    //             return (
-    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    //                     <path d="M15.5 5.5L18 8l-7 7-2.5-2.5L15.5 5.5zm-1.41 1.41L9.5 11.5l1 1 4.59-4.59-1-1zM7 18c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z" />
-    //                 </svg>
-    //             );
-    //         case 'bowler':
-    //             return (
-    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    //                     <circle cx="12" cy="12" r="10" />
-    //                     <circle cx="12" cy="12" r="4" />
-    //                 </svg>
-    //             );
-    //         case 'allrounder':
-    //             return (
-    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    //                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-    //                 </svg>
-    //             );
-    //         default:
-    //             return (
-    //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    //                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-    //                 </svg>
-    //             );
-    //     }
-    // };
 
     return (
         <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
@@ -81,15 +88,15 @@ export default function PlayerProfileCard({ player, onViewFullProfile }: PlayerP
 
                 {/* Name, Role, and Batch on Right */}
                 <div className="flex flex-col">
-                    <h4 className="text-2xl font-bold text-gray-900">{player.name}</h4>
-                    <p className="text-lg text-gray-700 font-medium">{player.player_role} | {player.batch}</p>
+                    <h4 className="text-2xl font-bold text-gray-900">{player.name || "Unknown Player"}</h4>
+                    <p className="text-lg text-gray-700 font-medium">
+                        {player.player_role || "Unknown Role"} | {player.batch || "Unknown Batch"}
+                    </p>
                 </div>
             </div>
 
-
             {/* Profile Content */}
             <div className="text-center">
-
                 {/* Contact Information */}
                 <div className="space-y-6 text-left mb-8">
                     {/* Email */}
@@ -98,7 +105,7 @@ export default function PlayerProfileCard({ player, onViewFullProfile }: PlayerP
                             <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                             <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                         </svg>
-                        <span className="text-gray-600">{player.email}</span>
+                        <span className="text-gray-600">{player.email || "No email provided"}</span>
                     </div>
 
                     {/* Phone */}
@@ -106,7 +113,7 @@ export default function PlayerProfileCard({ player, onViewFullProfile }: PlayerP
                         <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                         </svg>
-                        <span className="text-gray-600">{player.mobile_number}</span>
+                        <span className="text-gray-600">{player.mobile_number || "No phone provided"}</span>
                     </div>
 
                     {/* Join Date */}
