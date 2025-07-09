@@ -33,9 +33,7 @@ interface FormSubmission {
 }
 
 export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubmissionsCardProps) {
-    if (!player || !player.id) {
-        return null;
-    }
+    // Move all hooks to the top, before any conditional logic
     const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -125,6 +123,11 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
     useEffect(() => {
         fetchRecentSubmissions();
     }, [player.id, fetchRecentSubmissions]);
+
+    // Now handle the early return AFTER all hooks are called
+    if (!player || !player.id) {
+        return null;
+    }
 
     const getFormDisplayName = (formType: string) => {
         switch (formType) {
