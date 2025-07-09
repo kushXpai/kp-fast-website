@@ -36,9 +36,9 @@ const defaultPlayer: Player = {
     created_at: new Date().toISOString()
 };
 
-export default function PlayerProfileCard({ 
-    player = defaultPlayer, 
-    onViewFullProfile = () => {} 
+export default function PlayerProfileCard({
+    player = defaultPlayer,
+    onViewFullProfile = () => { }
 }: PlayerProfileCardProps) {
     if (!player) {
         return (
@@ -66,8 +66,10 @@ export default function PlayerProfileCard({
                 month: 'long'
             });
         } catch (error) {
+            console.error("Date formatting error:", error);
             return "Invalid date";
         }
+
     };
 
     return (
