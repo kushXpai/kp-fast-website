@@ -1,7 +1,7 @@
 // src/pages/AdminDashboard/components/analysis/DataTable.tsx
 
 import React from 'react';
-import { Activity, Calendar, Clock, Target, Zap, MessageCircle } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 interface FormEntry {
   id: string;

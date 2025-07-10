@@ -57,6 +57,7 @@ const Analysis: React.FC = () => {
   const [dateRange, setDateRange] = useState('');
 
   // Stats for the cards
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [stats, setStats] = useState({
     totalTeams: 0,
     totalPlayers: 0,
@@ -294,7 +295,7 @@ const Analysis: React.FC = () => {
     if (players.length > 0) {
       fetchFormEntries();
     }
-  }, [players, selectedTeam, selectedPlayer, selectedFormType, dateRange]);
+  }, [players, selectedTeam, selectedPlayer, selectedFormType, dateRange, fetchFormEntries]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

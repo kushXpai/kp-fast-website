@@ -1,6 +1,6 @@
 // src/pages/PlayerDashboard/Programs.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Search, Filter, Calendar, Video, Play, BookOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Image from 'next/image';
@@ -54,7 +54,7 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
     ];
 
     // Fetch programs from database for player's team
-    const fetchPrograms = async () => {
+    const fetchPrograms = useCallback(async () => {
         try {
             setIsLoading(true);
             const { data, error } = await supabase
@@ -74,7 +74,7 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [playerBatch]);
 
     useEffect(() => {
         fetchPrograms();
@@ -97,9 +97,9 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
     // Filter programs based on search and category
     const filteredPrograms = programs.filter(program => {
         const matchesSearch = program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            program.description.toLowerCase().includes(searchTerm.toLowerCase());
+            program.description.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === 'All Categories' || program.category === selectedCategory;
-        
+
         return matchesSearch && matchesCategory;
     });
 
@@ -115,10 +115,10 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
     };
 
@@ -232,8 +232,8 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
                                 {programs.length === 0 ? 'No Programs Available' : 'No Matching Programs'}
                             </h3>
                             <p className="text-gray-600">
-                                {programs.length === 0 
-                                    ? 'Your coach hasn\'t assigned any programs yet. Check back later!' 
+                                {programs.length === 0
+                                    ? 'Your coach hasn\'t assigned any programs yet. Check back later!'
                                     : 'Try adjusting your search criteria or filters.'}
                             </p>
                         </div>
@@ -287,7 +287,7 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
                     )}
                 </div>
             </div>
-            
+
             {/* Program Details Modal */}
             {selectedProgram && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -323,7 +323,7 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                         Training Videos ({selectedProgram.youtube_video_urls.length})
                                     </h3>
-                                    
+
                                     {/* Video Preview Thumbnails */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                                         {selectedProgram.youtube_video_urls.map((url, index) => (
@@ -331,7 +331,7 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
                                                 <span className="text-sm text-gray-500 mb-2 block">
                                                     Video {index + 1}
                                                 </span>
-                                                <div 
+                                                <div
                                                     className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                                                     onClick={() => openYouTubeVideo(url)}
                                                 >
