@@ -1,8 +1,9 @@
 // src/pages/PlayerDashboard/Programs.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Users, Video, Play, BookOpen } from 'lucide-react';
+import { Search, Filter, Calendar, Video, Play, BookOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import Image from 'next/image';
 
 // Types based on your database schema
 type FitnessCategoryEnum =
@@ -53,10 +54,6 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
     ];
 
     // Fetch programs from database for player's team
-    useEffect(() => {
-        fetchPrograms();
-    }, [playerBatch]);
-
     const fetchPrograms = async () => {
         try {
             setIsLoading(true);
@@ -78,6 +75,10 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchPrograms();
+    }, [playerBatch, fetchPrograms]);
 
     const getYouTubeVideoId = (url: string) => {
         const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
@@ -334,7 +335,7 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals
                                                     className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                                                     onClick={() => openYouTubeVideo(url)}
                                                 >
-                                                    <img
+                                                    <Image
                                                         src={getYouTubeThumbnail(url) || '/api/placeholder/320/180'}
                                                         alt={`Video ${index + 1} thumbnail`}
                                                         className="w-full h-full object-cover"

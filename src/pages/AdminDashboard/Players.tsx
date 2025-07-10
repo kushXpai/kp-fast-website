@@ -5,10 +5,10 @@ import { supabase } from '../../lib/supabaseClient';
 import { Search, Filter, Eye, Users, Shield } from 'lucide-react';
 
 // Types based on your database schema
-type BatchEnum = 'Baroda Cricket Association' | 'Delhi Capitals';
-type BatterTypeEnum = 'Right Hand' | 'Left Hand';
-type PlayerRoleEnum = 'Batsman' | 'Wicketkeeper' | 'Allrounder' | 'Bowler';
-type BowlerTypeEnum = 'Right Arm Fast' | 'Left Arm Fast' | 'Right Arm Medium' | 'Left Arm Medium' | 'Off Spin' | 'Leg Spin' | 'Left Arm Spin' | 'Chinaman';
+// type BatchEnum = 'Baroda Cricket Association' | 'Delhi Capitals';
+// type BatterTypeEnum = 'Right Hand' | 'Left Hand';
+// type PlayerRoleEnum = 'Batsman' | 'Wicketkeeper' | 'Allrounder' | 'Bowler';
+// type BowlerTypeEnum = 'Right Arm Fast' | 'Left Arm Fast' | 'Right Arm Medium' | 'Left Arm Medium' | 'Off Spin' | 'Leg Spin' | 'Left Arm Spin' | 'Chinaman';
 
 // Use the same Player interface as in index.tsx
 interface Player {
@@ -32,7 +32,7 @@ interface PlayersProps {
   onNavigate: (tabId: string) => void;
 }
 
-const Players: React.FC<PlayersProps> = ({ player, onNavigate }) => {
+const Players: React.FC<PlayersProps> = ({ onNavigate }) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +103,7 @@ const Players: React.FC<PlayersProps> = ({ player, onNavigate }) => {
 
   // Calculate stats
   const totalPlayers = players.length;
-  const totalTeams = [...new Set(players.map(p => p.batch))].length;
+  // const totalTeams = [...new Set(players.map(p => p.batch))].length;
   const approvedPlayers = players.filter(p => p.is_approved).length;
   const pendingPlayers = players.filter(p => !p.is_approved).length;
   const approvalRate = totalPlayers > 0 ? Math.round((approvedPlayers / totalPlayers) * 100) : 0;
@@ -396,7 +396,7 @@ const Players: React.FC<PlayersProps> = ({ player, onNavigate }) => {
             <Users className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No players found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Try adjusting your search or filters to find what you're looking for.
+              Try adjusting your search or filters to find what you&rsquo;re looking for.
             </p>
           </div>
         )}
