@@ -42,7 +42,7 @@ interface DataTableProps {
 }
 
 const DataTable: React.FC<DataTableProps> = ({
-    formEntries,
+    formEntries = [], // Provide default empty array
     formType,
     playerName,
     loading
@@ -264,7 +264,7 @@ const DataTable: React.FC<DataTableProps> = ({
             );
         }
 
-        if (formEntries.length === 0) {
+        if (!formEntries || formEntries.length === 0) {
             return (
                 <tr>
                     <td colSpan={getTableHeaders().length} className="px-6 py-8 text-center text-gray-500">
@@ -303,6 +303,9 @@ const DataTable: React.FC<DataTableProps> = ({
         }
     };
 
+    // Safe calculation of entries length
+    const entriesCount = formEntries ? formEntries.length : 0;
+
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
@@ -314,9 +317,8 @@ const DataTable: React.FC<DataTableProps> = ({
                         </h3>
                     </div>
                     <div className="text-sm text-gray-500">
-                        {(Array.isArray(formEntries) ? formEntries.length : 0)} entries
+                        {entriesCount} entries
                     </div>
-
                 </div>
             </div>
 
