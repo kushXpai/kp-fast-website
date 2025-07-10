@@ -21,6 +21,7 @@ interface ProgramDetailsPopupProps {
 }
 
 const ProgramDetailsPopup: React.FC<ProgramDetailsPopupProps> = ({ program, onClose }) => {
+    if (!program) return null;
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
