@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Dashboard from './Dashboard';
 import PendingApprovals from './PendingApprovals';
+import Players from './Players';
+import Programs from './Programs';
 
 interface Player {
   id: string;
@@ -95,6 +97,16 @@ const Navigation = ({ activeTab, onTabChange, onLogout, isOpen, onClose }: Navig
               )
             },
             {
+              id: 'players',
+              label: 'Players',
+              icon: (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                  <path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                </svg>
+              )
+            },
+            {
               id: 'pending-approvals',
               label: 'Pending Approvals',
               icon: (
@@ -141,7 +153,7 @@ const Navigation = ({ activeTab, onTabChange, onLogout, isOpen, onClose }: Navig
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <button
             onClick={onLogout}
-            className="w-full text-xl bg-orange-500 text-white hover:bg-red-800 text-center px-4 py-2 rounded-lg"
+            className="w-full text-xl bg-red-600 text-white hover:bg-red-800 text-center px-4 py-2 rounded-lg"
           >
             Logout
           </button>
@@ -248,12 +260,12 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard player={player} onNavigate={setActiveTab} />;
-      // case 'players':
-      //   return <PendingApprovals player={player} onNavigate={handleTabChange} />;
+      case 'players':
+        return <Players player={player} onNavigate={handleTabChange} />;
       case 'pending-approvals':
         return <PendingApprovals onNavigate={handleTabChange} />;
       case 'programs':
-        return <div>Programs Component</div>;
+        return <Programs/>;
       case 'tests':
         return <div>Tests Component</div>;
       default:
