@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Users, User, FileText, Activity, Loader2 } from 'lucide-react';
-import { useStatsData } from './useStatsData';
+import { useStatsData } from '../../../../hooks/useStatsData';
 
 const StatsCards: React.FC = () => {
   const { stats, loading, error } = useStatsData();

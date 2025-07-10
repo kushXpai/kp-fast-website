@@ -1,7 +1,7 @@
-// src/pages/AdminDashboard/components/analysis/useStatsData.ts
+// src/hooks/useStatsData.ts
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 interface StatsData {
   totalTeams: number;
