@@ -10,9 +10,9 @@ interface Player {
 }
 
 interface FiltersSectionProps {
-  teams: string[];
-  players: Player[];
-  formTypes: string[];
+  teams?: string[];
+  players?: Player[];
+  formTypes?: string[];
   selectedTeam: string;
   selectedPlayer: string;
   selectedFormType: string;
@@ -22,9 +22,9 @@ interface FiltersSectionProps {
 }
 
 const FiltersSection: React.FC<FiltersSectionProps> = ({
-  teams,
-  players,
-  formTypes,
+  teams = [],
+  players = [],
+  formTypes = [],
   selectedTeam,
   selectedPlayer,
   selectedFormType,
@@ -32,7 +32,6 @@ const FiltersSection: React.FC<FiltersSectionProps> = ({
   onPlayerChange,
   onFormTypeChange
 }) => {
-  // Filter players based on selected team
   const filteredPlayers = selectedTeam 
     ? players.filter(player => {
         console.log('Comparing:', { 
@@ -46,13 +45,13 @@ const FiltersSection: React.FC<FiltersSectionProps> = ({
       })
     : players;
 
-  // Additional debugging
+  // Debug logs with safe fallbacks
   console.log('=== DEBUGGING FILTERS ===');
-  console.log('All players:', players);
+  console.log('All players:', players ?? []);
   console.log('Selected team:', selectedTeam);
-  console.log('Available teams:', teams);
-  console.log('Filtered players:', filteredPlayers);
-  console.log('Player batches:', players.map(p => ({ name: p.name, batch: p.batch })));
+  console.log('Available teams:', teams ?? []);
+  console.log('Filtered players:', filteredPlayers ?? []);
+  console.log('Player batches:', (players ?? []).map(p => ({ name: p.name, batch: p.batch })));
   console.log('========================');
 
   const CustomSelect = ({ 
@@ -82,7 +81,7 @@ const FiltersSection: React.FC<FiltersSectionProps> = ({
           }`}
         >
           <option value="">{placeholder}</option>
-          {options.map((option) => (
+          {(options ?? []).map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
@@ -112,10 +111,10 @@ const FiltersSection: React.FC<FiltersSectionProps> = ({
         <CustomSelect
           value={selectedPlayer}
           onChange={onPlayerChange}
-          options={filteredPlayers.map(p => p.name)}
-          placeholder={selectedTeam ? `Select Player (${filteredPlayers.length} available)` : "Select Team First"}
+          options={(filteredPlayers ?? []).map(p => p.name)}
+          placeholder={selectedTeam ? `Select Player (${(filteredPlayers ?? []).length} available)` : "Select Team First"}
           label="2. Select Player"
-          disabled={!selectedTeam && filteredPlayers.length === 0}
+          disabled={!selectedTeam && (filteredPlayers ?? []).length === 0}
         />
 
         <CustomSelect
