@@ -324,7 +324,7 @@ const DataTable: React.FC<DataTableProps> = ({
             </h3>
           </div>
           <div className="text-sm text-gray-500">
-            {Array.isArray(formEntries) ? formEntries.length : 0} entries
+            {(formEntries?.length ?? 0)} entries
           </div>
         </div>
       </div>
