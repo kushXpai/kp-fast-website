@@ -1,5 +1,3 @@
-// src/pages/AdminDashboard/Analysis.tsx
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -29,19 +27,16 @@ interface FormEntry {
   match_performance?: string;
   coach_feedback?: boolean;
   comments?: string;
-  // Wellness form fields
   sleep_quality?: string;
   physical_readiness?: string;
   mood?: string;
   mental_alertness?: string;
   muscle_soreness?: string;
   menstrual_cycle?: string;
-  // Hydration form fields
   pre_session_weight?: number;
   post_session_weight?: number;
   liquid_consumed?: number;
   urination_output?: number;
-  // Recovery form fields
   recovery_methods?: string[];
   injury_present?: string;
   injury_status?: string;
@@ -55,18 +50,42 @@ const Analysis: React.FC = () => {
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [selectedFormType, setSelectedFormType] = useState('');
   const [dateRange, setDateRange] = useState('');
+  const [teams, setTeams] = useState<string[]>([]);
+  const [formTypes, setFormTypes] = useState<string[]>([]);
 
   // Stats for the cards
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [stats, setStats] = useState({
     totalTeams: 0,
     totalPlayers: 0,
     formEntries: 0,
-    formTypes: 4
+    formTypes: 0
   });
 
-  const teams = ['Baroda Cricket Association', 'Delhi Capitals'];
-  const formTypes = ['Monitoring', 'Wellness', 'Hydration', 'Recovery'];
+  // Fetch teams dynamically
+  const fetchTeams = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('players')
+        .select('batch')
+        .eq('is_approved', true);
+      if (error) throw error;
+      const uniqueTeams = Array.from(new Set(data?.map(p => p.batch).filter(Boolean)));
+      console.log('Fetched teams:', uniqueTeams);
+      setTeams(uniqueTeams);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    }
+  };
+
+  // Fetch form types (simulating dynamic fetch; adjust based on your schema)
+  const fetchFormTypes = async () => {
+    // In a real scenario, you might fetch form types from a config table or metadata
+    // Here, we'll set them based on known tables, but you can replace with a Supabase query
+    const types = ['Monitoring', 'Wellness', 'Hydration', 'Recovery'];
+    console.log('Fetched form types:', types);
+    setFormTypes(types);
+    setStats(prev => ({ ...prev, formTypes: types.length }));
+  };
 
   // Fetch players data
   const fetchPlayers = async () => {
@@ -95,8 +114,8 @@ const Analysis: React.FC = () => {
 
   // Fetch form entries based on selected form type
   const fetchFormEntries = async () => {
-    // Don't fetch if no form type is selected
     if (!selectedFormType) {
+      console.log('No form type selected, skipping fetch');
       setFormEntries([]);
       return;
     }
@@ -106,7 +125,6 @@ const Analysis: React.FC = () => {
       let tableName = '';
       let selectFields = '';
       
-      // Determine which table to query and what fields to select based on form type
       switch (selectedFormType) {
         case 'Monitoring':
           tableName = 'monitoring_forms';
@@ -125,35 +143,38 @@ const Analysis: React.FC = () => {
           selectFields = 'id, date, player_id, recovery_methods, injury_present, comments';
           break;
         default:
+          console.warn('Invalid form type:', selectedFormType);
           setFormEntries([]);
           return;
       }
 
       let queryBuilder = supabase.from(tableName).select(selectFields);
 
-      // Filter by player if selected
       if (selectedPlayer) {
         const selectedPlayerObj = players.find(p => p.name === selectedPlayer);
         if (selectedPlayerObj) {
+          console.log('Filtering by player_id:', selectedPlayerObj.id);
           queryBuilder = queryBuilder.eq('player_id', selectedPlayerObj.id);
+        } else {
+          console.warn('Selected player not found:', selectedPlayer);
         }
       }
 
-      // Filter by team (batch) if selected but no specific player
       if (selectedTeam && !selectedPlayer) {
-        const teamPlayers = players.filter(p => p.batch === selectedTeam);
+        const teamPlayers = players.filter(p => String(p.batch) === String(selectedTeam));
         const playerIds = teamPlayers.map(p => p.id);
+        console.log('Team players:', teamPlayers);
+        console.log('Player IDs for team:', playerIds);
         if (playerIds.length > 0) {
           queryBuilder = queryBuilder.in('player_id', playerIds);
         } else {
-          // If no players found for the team, return empty results
+          console.warn(`No players found for team: ${selectedTeam}`);
           setFormEntries([]);
           setStats(prev => ({ ...prev, formEntries: 0 }));
           return;
         }
       }
 
-      // Add date range filter if selected
       if (dateRange) {
         const now = new Date();
         let startDate = new Date();
@@ -172,7 +193,7 @@ const Analysis: React.FC = () => {
             startDate.setFullYear(now.getFullYear() - 1);
             break;
           default:
-            startDate = new Date(0); // No filter
+            startDate = new Date(0);
         }
         
         if (dateRange !== 'all') {
@@ -180,7 +201,6 @@ const Analysis: React.FC = () => {
         }
       }
 
-      // Order by date descending
       queryBuilder = queryBuilder.order('date', { ascending: false });
 
       const { data, error } = await queryBuilder;
@@ -193,14 +213,12 @@ const Analysis: React.FC = () => {
       console.log('Raw data from Supabase:', data);
       console.log('Available players for mapping:', players);
 
-      // Add player names to the entries
       const entriesWithPlayerNames = (data as unknown as FormEntry[])?.map(entry => {
         const player = players.find(p => p.id === entry.player_id);
         console.log(`Mapping player_id ${entry.player_id} to player:`, player);
         return {
           ...entry,
           player_name: player?.name || 'Unknown Player',
-          // Normalize field names for recovery forms
           injury_status: entry.injury_present || entry.injury_status
         };
       }) || [];
@@ -209,7 +227,6 @@ const Analysis: React.FC = () => {
 
       setFormEntries(entriesWithPlayerNames);
       
-      // Update form entries count in stats
       setStats(prev => ({
         ...prev,
         formEntries: entriesWithPlayerNames.length
@@ -234,7 +251,6 @@ const Analysis: React.FC = () => {
         const fieldKey = header.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
         let value = entry[fieldKey as keyof FormEntry];
         
-        // Handle arrays (like recovery_methods)
         if (Array.isArray(value)) {
           value = value.join('; ');
         }
@@ -269,38 +285,44 @@ const Analysis: React.FC = () => {
 
   // Handle filter changes
   const handleTeamChange = (team: string) => {
+    console.log('Team changed to:', team);
     setSelectedTeam(team);
-    setSelectedPlayer(''); // Clear player selection when team changes
+    setSelectedPlayer('');
   };
 
   const handlePlayerChange = (player: string) => {
+    console.log('Player changed to:', player);
     setSelectedPlayer(player);
   };
 
   const handleFormTypeChange = (formType: string) => {
+    console.log('Form type changed to:', formType);
     setSelectedFormType(formType);
   };
 
   const handleDateRangeChange = (range: string) => {
+    console.log('Date range changed to:', range);
     setDateRange(range);
   };
 
   // Initial data fetch
   useEffect(() => {
+    fetchTeams();
+    fetchFormTypes();
     fetchPlayers();
   }, []);
 
   // Fetch form entries when filters change
   useEffect(() => {
+    console.log('Filters changed:', { selectedTeam, selectedPlayer, selectedFormType, playersLength: players.length });
     if (players.length > 0) {
       fetchFormEntries();
     }
-  }, [players, selectedTeam, selectedPlayer, selectedFormType, dateRange, fetchFormEntries]);
+  }, [players, selectedTeam, selectedPlayer, selectedFormType, dateRange]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -334,10 +356,8 @@ const Analysis: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <StatsCards/>
 
-        {/* Filters Section */}
         <FiltersSection
           teams={teams}
           players={players}
@@ -350,7 +370,6 @@ const Analysis: React.FC = () => {
           onFormTypeChange={handleFormTypeChange}
         />
 
-        {/* Data Table - Only show if form type is selected */}
         {selectedFormType && (
           <DataTable
             formEntries={formEntries}
@@ -360,7 +379,6 @@ const Analysis: React.FC = () => {
           />
         )}
 
-        {/* Show message when no form type is selected */}
         {!selectedFormType && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div className="text-gray-500">

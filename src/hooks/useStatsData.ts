@@ -1,5 +1,3 @@
-// src/hooks/useStatsData.ts
-
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -12,10 +10,10 @@ interface StatsData {
 
 export const useStatsData = () => {
   const [stats, setStats] = useState<StatsData>({
-    totalTeams: 2, // Static as requested
+    totalTeams: 0,
     totalPlayers: 0,
     formEntries: 0,
-    formTypes: 4 // Static as requested
+    formTypes: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +30,16 @@ export const useStatsData = () => {
           .select('*', { count: 'exact', head: true });
 
         if (playersError) throw playersError;
+        console.log('Players count:', playersCount);
+
+        // Fetch unique teams count
+        const { data: teamsData, error: teamsError } = await supabase
+          .from('players')
+          .select('batch')
+          .eq('is_approved', true);
+        if (teamsError) throw teamsError;
+        const uniqueTeams = Array.from(new Set(teamsData?.map(p => p.batch).filter(Boolean)));
+        console.log('Unique teams:', uniqueTeams);
 
         // Fetch total form entries count from all form tables
         const [
@@ -51,12 +59,23 @@ export const useStatsData = () => {
         }
 
         const totalFormEntries = (hydrationCount || 0) + (monitoringCount || 0) + (wellnessCount || 0) + (recoveryCount || 0);
+        console.log('Form entries counts:', {
+          hydration: hydrationCount,
+          monitoring: monitoringCount,
+          wellness: wellnessCount,
+          recovery: recoveryCount,
+          total: totalFormEntries
+        });
+
+        // Fetch form types (simulating dynamic fetch; adjust based on your schema)
+        const formTypes = ['Monitoring', 'Wellness', 'Hydration', 'Recovery'];
+        console.log('Form types:', formTypes);
 
         setStats({
-          totalTeams: 2, // Static
+          totalTeams: uniqueTeams.length,
           totalPlayers: playersCount || 0,
           formEntries: totalFormEntries,
-          formTypes: 4 // Static
+          formTypes: formTypes.length
         });
       } catch (err) {
         console.error('Error fetching stats:', err);

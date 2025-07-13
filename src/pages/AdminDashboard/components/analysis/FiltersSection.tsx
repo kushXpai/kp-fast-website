@@ -1,5 +1,3 @@
-// src/pages/AdminDashboard/components/analysis/FiltersSection.tsx
-
 import React from 'react';
 import { ChevronDown, Filter } from 'lucide-react';
 
@@ -10,9 +8,9 @@ interface Player {
 }
 
 interface FiltersSectionProps {
-  teams?: string[];
-  players?: Player[];
-  formTypes?: string[];
+  teams: string[];
+  players: Player[];
+  formTypes: string[];
   selectedTeam: string;
   selectedPlayer: string;
   selectedFormType: string;
@@ -32,33 +30,36 @@ const FiltersSection: React.FC<FiltersSectionProps> = ({
   onPlayerChange,
   onFormTypeChange
 }) => {
-  const filteredPlayers = selectedTeam 
+  // Filter players based on selected team with type checking
+  const filteredPlayers = selectedTeam
     ? players.filter(player => {
-        console.log('Comparing:', { 
-          playerBatch: player.batch, 
-          selectedTeam: selectedTeam,
-          match: player.batch === selectedTeam,
+        const match = String(player.batch) === String(selectedTeam);
+        console.log('Comparing:', {
+          playerBatch: player.batch,
+          selectedTeam,
+          match,
           playerBatchType: typeof player.batch,
           selectedTeamType: typeof selectedTeam
         });
-        return player.batch === selectedTeam;
+        return match;
       })
     : players;
 
-  // Debug logs with safe fallbacks
+  // Debug logs for troubleshooting
   console.log('=== DEBUGGING FILTERS ===');
-  console.log('All players:', players ?? []);
+  console.log('Teams:', teams);
+  console.log('All players:', players);
   console.log('Selected team:', selectedTeam);
-  console.log('Available teams:', teams ?? []);
-  console.log('Filtered players:', filteredPlayers ?? []);
-  console.log('Player batches:', (players ?? []).map(p => ({ name: p.name, batch: p.batch })));
+  console.log('Filtered players:', filteredPlayers);
+  console.log('Player batches:', players.map(p => ({ name: p.name, batch: p.batch })));
+  console.log('Form types:', formTypes);
   console.log('========================');
 
-  const CustomSelect = ({ 
-    value, 
-    onChange, 
-    options, 
-    placeholder, 
+  const CustomSelect = ({
+    value,
+    onChange,
+    options,
+    placeholder,
     label,
     disabled = false
   }: {
@@ -74,14 +75,17 @@ const FiltersSection: React.FC<FiltersSectionProps> = ({
       <div className="relative">
         <select
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            console.log(`Selected ${label}:`, e.target.value);
+            onChange(e.target.value);
+          }}
           disabled={disabled}
           className={`w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer ${
             disabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
           <option value="">{placeholder}</option>
-          {(options ?? []).map((option) => (
+          {options.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
@@ -111,10 +115,10 @@ const FiltersSection: React.FC<FiltersSectionProps> = ({
         <CustomSelect
           value={selectedPlayer}
           onChange={onPlayerChange}
-          options={(filteredPlayers ?? []).map(p => p.name)}
-          placeholder={selectedTeam ? `Select Player (${(filteredPlayers ?? []).length} available)` : "Select Team First"}
+          options={filteredPlayers.map(p => p.name)}
+          placeholder={selectedTeam ? `Select Player (${filteredPlayers.length} available)` : "Select Team First"}
           label="2. Select Player"
-          disabled={!selectedTeam && (filteredPlayers ?? []).length === 0}
+          disabled={!selectedTeam || filteredPlayers.length === 0}
         />
 
         <CustomSelect
