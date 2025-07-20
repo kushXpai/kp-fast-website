@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import StatsCards from './components/analysis/StatsCards';
@@ -54,7 +54,6 @@ const Analysis: React.FC = () => {
   const [formTypes, setFormTypes] = useState<string[]>([]);
 
   // Stats for the cards
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [stats, setStats] = useState({
     totalTeams: 0,
     totalPlayers: 0,
@@ -114,7 +113,7 @@ const Analysis: React.FC = () => {
   };
 
   // Fetch form entries based on selected form type
-  const fetchFormEntries = async () => {
+  const fetchFormEntries = useCallback(async () => {
     if (!selectedFormType) {
       console.log('No form type selected, skipping fetch');
       setFormEntries([]);
@@ -239,7 +238,7 @@ const Analysis: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedFormType, selectedPlayer, selectedTeam, dateRange, players]);
 
   // Export data to CSV
   const exportToCSV = () => {
@@ -307,7 +306,6 @@ const Analysis: React.FC = () => {
   };
 
   // Initial data fetch
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   useEffect(() => {
     fetchTeams();
     fetchFormTypes();
@@ -320,7 +318,7 @@ const Analysis: React.FC = () => {
     if (players.length > 0) {
       fetchFormEntries();
     }
-  }, [players, selectedTeam, selectedPlayer, selectedFormType, dateRange]);
+  }, [players, selectedTeam, selectedPlayer, selectedFormType, dateRange, fetchFormEntries]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
