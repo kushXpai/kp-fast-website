@@ -7,6 +7,7 @@ import PendingApprovals from './PendingApprovals';
 import Players from './Players';
 import Programs from './Programs';
 import Analysis from './Analysis';
+import Tests from './Tests';
 
 interface Player {
   id: string;
@@ -279,7 +280,7 @@ export default function AdminDashboard() {
       case 'analysis':
         return <Analysis/>;
       case 'tests':
-        return <div>Tests Component</div>;
+        return <Tests/>;
       default:
         return <Dashboard player={player} onNavigate={setActiveTab} />;
     }
