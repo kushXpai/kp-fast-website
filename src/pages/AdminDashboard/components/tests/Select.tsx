@@ -1,15 +1,18 @@
-// src/pages/AdminDashboard/components/tests/Select.tsx
-
 import React from 'react';
 
 interface SelectProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options?: string[];
 }
 
-const Select: React.FC<SelectProps> = ({ label, value, onChange, options }) => {
+const Select: React.FC<SelectProps> = ({
+  label,
+  value,
+  onChange,
+  options = [],
+}) => {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700">{label}</label>
