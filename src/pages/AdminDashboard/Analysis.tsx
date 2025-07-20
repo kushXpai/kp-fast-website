@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/pages/AdminDashboard/Analysis.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -54,7 +56,6 @@ const Analysis: React.FC = () => {
   const [formTypes, setFormTypes] = useState<string[]>([]);
 
   // Stats for the cards
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState({
     totalTeams: 0,
     totalPlayers: 0,
