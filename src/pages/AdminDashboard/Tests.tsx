@@ -55,7 +55,7 @@ export default function Tests() {
 
   const handleSubmit = async () => {
     const results = Object.entries(testResults)
-      .filter(([playerId, results]) => Object.keys(results).length > 0)
+      .filter(([results]) => Object.keys(results).length > 0)
       .map(([playerId, results]) => ({
         player_id: playerId,
         test_date: testDate,
