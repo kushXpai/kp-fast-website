@@ -140,6 +140,7 @@ const AllTests = () => {
       console.log('Raw data from Supabase:', data);
       
       // Transform the data to match our TestResult interface
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transformedData: TestResult[] = data?.map((item: any) => ({
         id: item.id,
         test_date: item.test_date,

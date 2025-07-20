@@ -54,6 +54,7 @@ const Analysis: React.FC = () => {
   const [formTypes, setFormTypes] = useState<string[]>([]);
 
   // Stats for the cards
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState({
     totalTeams: 0,
     totalPlayers: 0,
