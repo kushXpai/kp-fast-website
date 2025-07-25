@@ -34,7 +34,7 @@ interface PlayerProgramsProps {
     playerBatch?: BatchEnum; // This should be passed from parent component or context
 }
 
-const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Delhi Capitals' }) => {
+const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Baroda Cricket Association'}) => {
     const [programs, setPrograms] = useState<Program[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
