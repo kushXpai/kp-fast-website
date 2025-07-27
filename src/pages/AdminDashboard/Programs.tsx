@@ -134,6 +134,7 @@ const Programs: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleInputChange = (field: keyof ProgramFormData, value: any) => {
     setFormData(prev => ({
       ...prev,

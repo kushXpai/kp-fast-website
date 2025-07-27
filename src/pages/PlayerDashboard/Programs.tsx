@@ -85,6 +85,7 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerId, playerBatch }) => {
             }
 
             const assignedPrograms: Program[] = (data || [])
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .map((assignment: any) => ({
                     ...assignment.programs,
                     batch: assignment.batch,
