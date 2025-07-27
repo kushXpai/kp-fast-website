@@ -285,7 +285,7 @@ export default function PlayerDashboard() {
       case 'history':
         return <History player={player} />;
       case 'programs':
-        return <Programs/>;
+        return <Programs playerId={player.id} playerBatch={player.batch} />;
       case 'profile':
         return <Profile player={player} />;
       default:

@@ -31,10 +31,11 @@ interface Program {
 }
 
 interface PlayerProgramsProps {
-    playerBatch?: BatchEnum; // This should be passed from parent component or context
+    playerId: string;
+    playerBatch: string;
 }
 
-const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Baroda Cricket Association'}) => {
+const Programs: React.FC<PlayerProgramsProps> = ({ playerId, playerBatch }) => {
     const [programs, setPrograms] = useState<Program[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
@@ -55,26 +56,49 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Baroda Cricket
 
     // Fetch programs from database for player's team
     const fetchPrograms = useCallback(async () => {
+        console.log('Fetching programs for player:', playerId, 'Batch:', playerBatch);
         try {
             setIsLoading(true);
+
             const { data, error } = await supabase
-                .from('programs')
-                .select('*')
-                .eq('batch', playerBatch)
-                .order('created_at', { ascending: false });
+                .from('program_assignments')
+                .select(`
+                    programs (
+                        id,
+                        title,
+                        category,
+                        description,
+                        youtube_video_urls,
+                        created_at,
+                        updated_at
+                    ),
+                    batch,
+                    player_id,
+                    assigned_at
+                `)
+                .or(`player_id.eq.${playerId},batch.eq.${playerBatch}`)
+                .order('assigned_at', { ascending: false });
 
             if (error) {
-                console.error('Error fetching programs:', error);
+                console.error('Error fetching assigned programs:', error);
                 return;
             }
 
-            setPrograms(data || []);
+            const assignedPrograms: Program[] = (data || [])
+                .map((assignment: any) => ({
+                    ...assignment.programs,
+                    batch: assignment.batch,
+                }))
+                .filter((program: Program) => program.id) // Filter out any null program rows
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); // Sort by program creation date
+
+            setPrograms(assignedPrograms);
         } catch (error) {
             console.error('Error fetching programs:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [playerBatch]);
+    }, [playerId, playerBatch]);
 
     useEffect(() => {
         fetchPrograms();
@@ -338,6 +362,8 @@ const Programs: React.FC<PlayerProgramsProps> = ({ playerBatch = 'Baroda Cricket
                                                     <Image
                                                         src={getYouTubeThumbnail(url) || '/api/placeholder/320/180'}
                                                         alt={`Video ${index + 1} thumbnail`}
+                                                        width={320}
+                                                        height={180}
                                                         className="w-full h-full object-cover"
                                                         onError={(e) => {
                                                             e.currentTarget.src = '/api/placeholder/320/180';
