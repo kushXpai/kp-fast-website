@@ -1,6 +1,6 @@
 // src/pages/PlayerDashboard/Profile.tsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -17,6 +17,7 @@ interface Player {
   bowler_type: string;
   is_approved: boolean;
   created_at: string;
+  profile_photo_url?: string;
 }
 
 interface ProfileProps {
@@ -25,6 +26,7 @@ interface ProfileProps {
 
 export default function Profile({ player }: ProfileProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [playerData, setPlayerData] = useState<Player | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -39,6 +41,12 @@ export default function Profile({ player }: ProfileProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Photo modal states
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   // Fetch player data from Supabase
   useEffect(() => {
@@ -52,15 +60,14 @@ export default function Profile({ player }: ProfileProps) {
 
         if (error) {
           console.error('Error fetching player data:', error);
-          setPlayerData(player); // Fallback to localStorage data
+          setPlayerData(player);
         } else {
           setPlayerData(data);
-          // Update localStorage with fresh data
           localStorage.setItem('player', JSON.stringify(data));
         }
       } catch (error) {
         console.error('Error:', error);
-        setPlayerData(player); // Fallback to localStorage data
+        setPlayerData(player);
       } finally {
         setIsLoading(false);
       }
@@ -113,8 +120,8 @@ export default function Profile({ player }: ProfileProps) {
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
-    if (isEditing && playerData) {
-      // Reset form to current data if canceling
+    // Keep existing values when entering edit mode
+    if (!isEditing && playerData) {
       setEditForm({
         name: playerData.name || '',
         email: playerData.email || '',
@@ -165,6 +172,242 @@ export default function Profile({ player }: ProfileProps) {
     }
   };
 
+  // Handle photo modal open
+  const handlePhotoClick = () => {
+    setShowPhotoModal(true);
+  };
+
+  // Replace the existing photo upload functions with these improved versions
+
+  // Generate filename based on batch and player name
+  const generateFileName = (originalName: string) => {
+    if (!playerData) return originalName;
+
+    const fileExt = originalName.split('.').pop()?.toLowerCase();
+    const batchName = playerData.batch?.replace(/[^a-zA-Z0-9]/g, '_') || 'default';
+    const playerName = playerData.name.replace(/[^a-zA-Z0-9]/g, '_');
+    const timestamp = Date.now(); // Add timestamp to avoid conflicts
+
+    return `${batchName}_${playerName}_${timestamp}.${fileExt}`;
+  };
+
+  // Improved photo upload function
+  const handlePhotoUpload = async () => {
+    if (!selectedPhoto || !playerData) {
+      alert('Please select a photo first');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+
+    try {
+      console.log('Starting photo upload...');
+
+      // Generate unique filename
+      const fileName = generateFileName(selectedPhoto.name);
+      console.log('Generated filename:', fileName);
+
+      // Delete existing photo if it exists
+      if (playerData.profile_photo_url) {
+        try {
+          const existingUrl = new URL(playerData.profile_photo_url);
+          const pathSegments = existingUrl.pathname.split('/');
+          const existingFileName = pathSegments[pathSegments.length - 1];
+
+          if (existingFileName) {
+            console.log('Deleting existing photo:', existingFileName);
+            const { error: deleteError } = await supabase.storage
+              .from('profile-photos')
+              .remove([existingFileName]);
+
+            if (deleteError) {
+              console.warn('Could not delete existing photo:', deleteError);
+            } else {
+              console.log('Successfully deleted existing photo');
+            }
+          }
+        } catch (deleteError) {
+          console.warn('Error processing existing photo deletion:', deleteError);
+        }
+      }
+
+      // Upload new photo
+      console.log('Uploading new photo...');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(fileName, selectedPhoto, {
+          cacheControl: '3600',
+          upsert: true, // Overwrite if exists
+          contentType: selectedPhoto.type
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      console.log('Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(fileName);
+
+      if (!urlData?.publicUrl) {
+        throw new Error('Failed to get public URL');
+      }
+
+      console.log('Public URL generated:', urlData.publicUrl);
+
+      // Update player record with new photo URL
+      const { data: updateData, error: updateError } = await supabase
+        .from('players')
+        .update({ profile_photo_url: urlData.publicUrl })
+        .eq('id', playerData.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
+
+      console.log('Database updated successfully:', updateData);
+
+      // Update local state and localStorage
+      setPlayerData(updateData);
+      localStorage.setItem('player', JSON.stringify(updateData));
+
+      // Reset modal state
+      setShowPhotoModal(false);
+      setSelectedPhoto(null);
+      setPhotoPreview(null);
+
+      alert('Profile photo updated successfully!');
+
+    } catch (error) {
+      console.error('Photo upload error:', error);
+
+      let errorMessage = 'Error uploading photo. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = `Upload error: ${error.message}`;
+      }
+
+      alert(errorMessage);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  // Improved photo removal function
+  const handleRemovePhoto = async () => {
+    if (!playerData?.profile_photo_url) {
+      alert('No photo to remove');
+      return;
+    }
+
+    const confirmDelete = window.confirm('Are you sure you want to remove your profile photo?');
+    if (!confirmDelete) return;
+
+    setIsUploadingPhoto(true);
+
+    try {
+      console.log('Removing photo...');
+
+      // Extract filename from the URL
+      const url = new URL(playerData.profile_photo_url);
+      const pathSegments = url.pathname.split('/');
+      const fileName = pathSegments[pathSegments.length - 1];
+
+      if (fileName && fileName !== 'undefined') {
+        console.log('Deleting file:', fileName);
+
+        // Delete the file from storage
+        const { error: deleteError } = await supabase.storage
+          .from('profile-photos')
+          .remove([fileName]);
+
+        if (deleteError) {
+          console.warn('Could not delete file from storage:', deleteError);
+        } else {
+          console.log('File deleted successfully from storage');
+        }
+      }
+
+      // Update player record to remove photo URL
+      const { data: updateData, error: updateError } = await supabase
+        .from('players')
+        .update({ profile_photo_url: null })
+        .eq('id', playerData.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
+
+      console.log('Database updated successfully');
+
+      setPlayerData(updateData);
+      localStorage.setItem('player', JSON.stringify(updateData));
+      alert('Profile photo removed successfully!');
+
+    } catch (error) {
+      console.error('Error removing photo:', error);
+      alert('Error removing photo. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  // Improved photo selection with better validation
+  const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    console.log('Selected file:', file.name, file.type, file.size);
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      event.target.value = ''; // Clear the input
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert('File size should be less than 5MB');
+      event.target.value = ''; // Clear the input
+      return;
+    }
+
+    setSelectedPhoto(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === 'string') {
+        setPhotoPreview(result);
+      }
+    };
+    reader.onerror = () => {
+      console.error('Error reading file');
+      alert('Error reading file. Please try again.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setShowPhotoModal(false);
+    setSelectedPhoto(null);
+    setPhotoPreview(null);
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -213,69 +456,14 @@ export default function Profile({ player }: ProfileProps) {
             onClick={isEditing ? handleSave : handleEditToggle}
             disabled={isSaving}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${isEditing
-                ? 'bg-green-800 text-white hover:bg-green-900'
-                : 'bg-green-800 text-white hover:bg-green-900'
+              ? 'bg-green-800 text-white hover:bg-green-900'
+              : 'bg-green-800 text-white hover:bg-green-900'
               } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isSaving ? 'Saving...' : isEditing ? 'Save Profile' : 'Edit Profile'}
           </button>
         </div>
       </div>
-
-      {/* Stats Cards */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Forms Completed</h3>
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-gray-900 mb-1">147</div>
-          <div className="text-sm text-green-600">+12 this week</div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Current Streak</h3>
-            <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
-              </svg>
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-gray-900 mb-1">28 days</div>
-          <div className="text-sm text-orange-600">Personal best!</div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Avg Response Time</h3>
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-gray-900 mb-1">3.2 min</div>
-          <div className="text-sm text-gray-600">Faster than 85% of players</div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Wellness Score</h3>
-            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-gray-900 mb-1">8.7/10</div>
-          <div className="text-sm text-green-600">+0.5 from last month</div>
-        </div>
-      </div> */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Personal Information */}
@@ -290,14 +478,46 @@ export default function Profile({ player }: ProfileProps) {
 
             {/* Profile Picture and Basic Info */}
             <div className="flex items-center mb-8">
-              <div className="w-20 h-20 bg-green-800 rounded-full flex items-center justify-center mr-6">
-                <span className="text-white font-bold text-2xl">
-                  {getInitials(playerData.name)}
-                </span>
+              <div className="relative mr-6">
+                {/* Clickable Photo Area */}
+                <div
+                  onClick={handlePhotoClick}
+                  className="w-20 h-20 rounded-full cursor-pointer hover:opacity-80 transition-opacity relative group"
+                >
+                  {playerData.profile_photo_url ? (
+                    <img
+                      src={playerData.profile_photo_url}
+                      alt={playerData.name}
+                      className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-green-800 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-2xl">
+                        {getInitials(playerData.name)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-2xl font-bold text-gray-900">{playerData.name}</h3>
                 <p className="text-gray-600 capitalize">{playerData.player_role}</p>
+                {playerData.profile_photo_url && (
+                  <button
+                    onClick={handleRemovePhoto}
+                    disabled={isUploadingPhoto}
+                    className="text-sm text-red-600 hover:text-red-800 mt-2 disabled:opacity-50"
+                  >
+                    Remove photo
+                  </button>
+                )}
               </div>
             </div>
 
@@ -359,16 +579,6 @@ export default function Profile({ player }: ProfileProps) {
                 )}
               </div>
 
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                <p className="text-gray-900 flex items-center">
-                  <svg className="w-4 h-4 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                  Mumbai, Maharashtra, IN
-                </p>
-              </div> */}
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
                 {isEditing ? (
@@ -380,18 +590,13 @@ export default function Profile({ player }: ProfileProps) {
                   >
                     <option value="Batsman">Batsman</option>
                     <option value="Bowler">Bowler</option>
-                    <option value="All-rounder">All-rounder</option>
-                    <option value="Wicket-keeper">Wicket-keeper</option>
+                    <option value="Allrounder">Allrounder</option>
+                    <option value="Wicketkeeper">Wicketkeeper</option>
                   </select>
                 ) : (
                   <p className="text-gray-900 capitalize">{playerData.player_role}</p>
                 )}
               </div>
-
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Jersey Number</label>
-                <p className="text-gray-900">#{playerData.id.slice(-2)}</p>
-              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Birthday</label>
@@ -427,11 +632,9 @@ export default function Profile({ player }: ProfileProps) {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
-                    <option value="2021">2021</option>
-                    <option value="2022">2022</option>
-                    <option value="2023">2023</option>
-                    <option value="2024">2024</option>
-                    <option value="2025">2025</option>
+                    <option value="">Select batch</option>
+                    <option value="Baroda Cricket Association">Baroda Cricket Association</option>
+                    <option value="Delhi Capitals">Delhi Capitals</option>
                   </select>
                 ) : (
                   <p className="text-gray-900">{playerData.batch}</p>
@@ -448,8 +651,8 @@ export default function Profile({ player }: ProfileProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     <option value="">Select batting style</option>
-                    <option value="Right-handed">Right-handed</option>
-                    <option value="Left-handed">Left-handed</option>
+                    <option value="Right Hand">Right Hand</option>
+                    <option value="Left Hand">Left Hand</option>
                   </select>
                 ) : (
                   <p className="text-gray-900">{playerData.batter_type || 'Not specified'}</p>
@@ -466,54 +669,20 @@ export default function Profile({ player }: ProfileProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     <option value="">Select bowling style</option>
-                    <option value="Fast">Fast</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Spin">Spin</option>
-                    <option value="Off-spin">Off-spin</option>
-                    <option value="Leg-spin">Leg-spin</option>
+                    <option value="Right Arm Fast">Right Arm Fast</option>
+                    <option value="Left Arm Fast">Left Arm Fast</option>
+                    <option value="Right Arm Medium">Right Arm Medium</option>
+                    <option value="Left Arm Medium">Left Arm Medium</option>
+                    <option value="Off Spin">Off Spin</option>
+                    <option value="Leg Spin">Leg Spin</option>
+                    <option value="Left Arm Spin">Left Arm Spin</option>
+                    <option value="Chinaman">Chinaman</option>
                   </select>
                 ) : (
                   <p className="text-gray-900">{playerData.bowler_type || 'Not specified'}</p>
                 )}
               </div>
             </div>
-
-            {/* Bio Section */}
-            {/* <div className="mt-8">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-gray-700">
-                  Passionate {playerData.player_role.toLowerCase()} with competitive experience.
-                  Known for excellent performance and strategic gameplay.
-                </p>
-              </div>
-            </div> */}
-
-            {/* Season Goals */}
-            {/* <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Season Goals</label>
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-blue-800">
-                  Improve performance by 10% this season and maintain 95% form completion rate.
-                </p>
-              </div>
-            </div> */}
-
-            {/* Emergency Contact */}
-            {/* <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact</label>
-              <p className="text-gray-900">Emergency Contact • {playerData.mobile_number}</p>
-            </div> */}
-
-            {/* Medical Notes */}
-            {/* <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Medical Notes</label>
-              <div className="bg-red-50 rounded-lg p-4">
-                <p className="text-red-800">
-                  No known allergies. Previous injuries: None reported.
-                </p>
-              </div>
-            </div> */}
 
             {/* Edit/Cancel buttons */}
             {isEditing && (
@@ -536,6 +705,78 @@ export default function Profile({ player }: ProfileProps) {
           </div>
         </div>
       </div>
+
+      {/* Photo Upload Modal */}
+      {showPhotoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Update Profile Photo</h3>
+              <button
+                onClick={handleModalClose}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Photo Preview */}
+            {photoPreview ? (
+              <div className="mb-4">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-64 object-cover rounded-lg border-2 border-gray-200"
+                />
+              </div>
+            ) : (
+              <div className="mb-4 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-gray-500">Select a photo to preview</p>
+              </div>
+            )}
+
+            {/* File Input */}
+            <div className="mb-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoSelect}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleModalClose}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePhotoUpload}
+                disabled={!selectedPhoto || isUploadingPhoto}
+                className="px-4 py-2 bg-green-800 text-white rounded-lg hover:bg-green-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploadingPhoto ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Uploading...
+                  </div>
+                ) : (
+                  'Upload Photo'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
