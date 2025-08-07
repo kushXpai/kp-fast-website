@@ -26,12 +26,12 @@ interface Program {
   program_assignments?: { batch?: BatchEnum; player_id?: string; players?: { name: string } }[];
 }
 
-interface ProgramDetailsPopupProps {
+interface ProgramDetails {
   program: Program;
   onClose: () => void;
 }
 
-const ProgramDetailsPopup: React.FC<ProgramDetailsPopupProps> = ({ program, onClose }) => {
+const ProgramDetails: React.FC<ProgramDetails> = ({ program, onClose }) => {
   if (!program) return null;
 
   const formatDate = (dateString: string) => {
@@ -58,54 +58,66 @@ const ProgramDetailsPopup: React.FC<ProgramDetailsPopupProps> = ({ program, onCl
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
+    <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+      <div className="min-h-full w-full">
+        {/* Header - Now scrollable, not sticky */}
+        <div className="p-4 sm:p-6 border-b border-gray-200 bg-white">
           <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{program.title}</h2>
-              <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+            <div className="flex-1 pr-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">{program.title}</h2>
+              <div className="flex items-center gap-2 sm:gap-4 text-sm text-gray-600 flex-wrap">
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs sm:text-sm">
                   {program.category}
                 </span>
-                {program.program_assignments && program.program_assignments.length > 0 ? (
-                  program.program_assignments.map((assignment, index) => (
-                    <span
-                      key={index}
-                      className="bg-green-100 text-green-800 px-2 py-1 rounded"
-                    >
-                      {assignment.batch || assignment.players?.name || 'Unknown'}
-                    </span>
-                  ))
-                ) : (
-                  <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                <span className="text-xs sm:text-sm">{formatDate(program.created_at)}</span>
+              </div>
+              
+              {/* Player assignments - scrollable */}
+              {program.program_assignments && program.program_assignments.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex flex-wrap gap-2">
+                    {program.program_assignments.map((assignment, index) => (
+                      <span
+                        key={index}
+                        className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs sm:text-sm"
+                      >
+                        {assignment.batch || assignment.players?.name || 'Unknown'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {(!program.program_assignments || program.program_assignments.length === 0) && (
+                <div className="mt-3">
+                  <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs sm:text-sm">
                     No assignments
                   </span>
-                )}
-                <span>{formatDate(program.created_at)}</span>
-              </div>
+                </div>
+              )}
             </div>
+            
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors ml-4"
+              className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 p-1"
+              aria-label="Close"
             >
               <X size={24} />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - fully scrollable */}
+        <div className="p-4 sm:p-6 bg-white">
           {/* Training Videos Section */}
           {program.youtube_video_urls && program.youtube_video_urls.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                 Training Videos ({program.youtube_video_urls.length})
               </h3>
 
-              {/* Video Preview Thumbnails */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Video Preview Thumbnails - Responsive Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {program.youtube_video_urls.map((url, index) => (
                   <div key={index} className="text-center">
                     <span className="text-sm text-gray-500 mb-2 block">
@@ -135,20 +147,22 @@ const ProgramDetailsPopup: React.FC<ProgramDetailsPopupProps> = ({ program, onCl
           )}
 
           {/* Program Details Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Details</h3>
+          <div className="mb-8">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Program Details</h3>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{program.description}</p>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
+                {program.description}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
+        {/* Footer - scrollable */}
+        <div className="p-4 sm:p-6 border-t border-gray-200 bg-white">
           <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
             >
               Close
             </button>
@@ -159,4 +173,4 @@ const ProgramDetailsPopup: React.FC<ProgramDetailsPopupProps> = ({ program, onCl
   );
 };
 
-export default ProgramDetailsPopup;
+export default ProgramDetails;

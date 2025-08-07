@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Calendar, Users, Video, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import ProgramDetailsPopup from './components/programs/ProgramDetailsPopup';
+import ProgramDetailsPopup from './components/programs/ProgramDetails';
 
 // Types based on updated database schema
 type FitnessCategoryEnum =
