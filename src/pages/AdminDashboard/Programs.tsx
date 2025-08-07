@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Calendar, Users, Video, X } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Users, Video, X, Edit3, Trash2, MoreVertical } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import ProgramDetailsPopup from './components/programs/ProgramDetails';
 
@@ -48,12 +48,17 @@ const Programs: React.FC = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('All Teams');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<ProgramFormData>({
@@ -187,65 +192,200 @@ const Programs: React.FC = () => {
       // Filter out empty video URLs
       const videoUrls = formData.youtube_video_urls.filter(url => url.trim() !== '');
 
-      // Insert program
-      const { data: programData, error: programError } = await supabase
-        .from('programs')
-        .insert([{
-          title: formData.title,
-          category: formData.category as FitnessCategoryEnum,
-          description: formData.description,
-          youtube_video_urls: videoUrls
-        }])
-        .select()
-        .single();
+      if (isEditModalOpen && editingProgram) {
+        // Update existing program
+        const { data: programData, error: programError } = await supabase
+          .from('programs')
+          .update({
+            title: formData.title,
+            category: formData.category as FitnessCategoryEnum,
+            description: formData.description,
+            youtube_video_urls: videoUrls,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingProgram.id)
+          .select()
+          .single();
 
-      if (programError) {
-        console.error('Error creating program:', programError);
-        alert('Failed to create program. Please try again.');
+        if (programError) {
+          console.error('Error updating program:', programError);
+          alert('Failed to update program. Please try again.');
+          return;
+        }
+
+        // Delete existing assignments
+        await supabase
+          .from('program_assignments')
+          .delete()
+          .eq('program_id', editingProgram.id);
+
+        // Insert new assignments
+        if (formData.assignmentType === 'batch') {
+          const { error: assignmentError } = await supabase
+            .from('program_assignments')
+            .insert([{
+              program_id: editingProgram.id,
+              batch: formData.selectedBatch
+            }]);
+
+          if (assignmentError) {
+            console.error('Error creating assignment:', assignmentError);
+            alert('Failed to create assignment. Please try again.');
+            return;
+          }
+        } else {
+          const assignments = formData.selectedPlayers.map(playerId => ({
+            program_id: editingProgram.id,
+            player_id: playerId
+          }));
+
+          const { error: assignmentError } = await supabase
+            .from('program_assignments')
+            .insert(assignments);
+
+          if (assignmentError) {
+            console.error('Error creating assignments:', assignmentError);
+            alert('Failed to create assignments. Please try again.');
+            return;
+          }
+        }
+
+        // Update local state
+        setPrograms(prev => prev.map(p =>
+          p.id === editingProgram.id ? { ...programData, program_assignments: [] } : p
+        ));
+        setIsEditModalOpen(false);
+        setEditingProgram(null);
+        alert('Program updated successfully!');
+      } else {
+        // Create new program
+        const { data: programData, error: programError } = await supabase
+          .from('programs')
+          .insert([{
+            title: formData.title,
+            category: formData.category as FitnessCategoryEnum,
+            description: formData.description,
+            youtube_video_urls: videoUrls
+          }])
+          .select()
+          .single();
+
+        if (programError) {
+          console.error('Error creating program:', programError);
+          alert('Failed to create program. Please try again.');
+          return;
+        }
+
+        // Insert assignments
+        if (formData.assignmentType === 'batch') {
+          const { error: assignmentError } = await supabase
+            .from('program_assignments')
+            .insert([{
+              program_id: programData.id,
+              batch: formData.selectedBatch
+            }]);
+
+          if (assignmentError) {
+            console.error('Error creating assignment:', assignmentError);
+            alert('Failed to create assignment. Please try again.');
+            return;
+          }
+        } else {
+          const assignments = formData.selectedPlayers.map(playerId => ({
+            program_id: programData.id,
+            player_id: playerId
+          }));
+
+          const { error: assignmentError } = await supabase
+            .from('program_assignments')
+            .insert(assignments);
+
+          if (assignmentError) {
+            console.error('Error creating assignments:', assignmentError);
+            alert('Failed to create assignments. Please try again.');
+            return;
+          }
+        }
+
+        // Update local state
+        setPrograms(prev => [{ ...programData, program_assignments: [] }, ...prev]);
+        setIsCreateModalOpen(false);
+        alert('Program created successfully!');
+      }
+
+      resetForm();
+    } catch (error) {
+      console.error('Error saving program:', error);
+      alert('Failed to save program. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = async (program: Program) => {
+    setEditingProgram(program);
+
+    // Fetch current assignments to populate form
+    const { data: assignments } = await supabase
+      .from('program_assignments')
+      .select('batch, player_id')
+      .eq('program_id', program.id);
+
+    const batchAssignment = assignments?.find(a => a.batch);
+    const playerAssignments = assignments?.filter(a => a.player_id).map(a => a.player_id) || [];
+
+    setFormData({
+      title: program.title,
+      category: program.category,
+      description: program.description,
+      youtube_video_urls: program.youtube_video_urls.length > 0 ? program.youtube_video_urls : [''],
+      assignmentType: batchAssignment ? 'batch' : 'players',
+      selectedBatch: batchAssignment?.batch || '',
+      selectedPlayers: playerAssignments
+    });
+
+    setIsEditModalOpen(true);
+    setDropdownOpen(null);
+  };
+
+  const handleDelete = async (programId: string) => {
+    setIsDeleting(true);
+
+    try {
+      // Delete assignments first
+      const { error: assignmentError } = await supabase
+        .from('program_assignments')
+        .delete()
+        .eq('program_id', programId);
+
+      if (assignmentError) {
+        console.error('Error deleting assignments:', assignmentError);
+        alert('Failed to delete program assignments. Please try again.');
         return;
       }
 
-      // Insert assignments
-      if (formData.assignmentType === 'batch') {
-        const { error: assignmentError } = await supabase
-          .from('program_assignments')
-          .insert([{
-            program_id: programData.id,
-            batch: formData.selectedBatch
-          }]);
+      // Delete program
+      const { error: programError } = await supabase
+        .from('programs')
+        .delete()
+        .eq('id', programId);
 
-        if (assignmentError) {
-          console.error('Error creating assignment:', assignmentError);
-          alert('Failed to create assignment. Please try again.');
-          return;
-        }
-      } else {
-        const assignments = formData.selectedPlayers.map(playerId => ({
-          program_id: programData.id,
-          player_id: playerId
-        }));
-
-        const { error: assignmentError } = await supabase
-          .from('program_assignments')
-          .insert(assignments);
-
-        if (assignmentError) {
-          console.error('Error creating assignments:', assignmentError);
-          alert('Failed to create assignments. Please try again.');
-          return;
-        }
+      if (programError) {
+        console.error('Error deleting program:', programError);
+        alert('Failed to delete program. Please try again.');
+        return;
       }
 
       // Update local state
-      setPrograms(prev => [{ ...programData, program_assignments: [] }, ...prev]);
-      setIsCreateModalOpen(false);
-      resetForm();
-      alert('Program created successfully!');
+      setPrograms(prev => prev.filter(p => p.id !== programId));
+      alert('Program deleted successfully!');
     } catch (error) {
-      console.error('Error creating program:', error);
-      alert('Failed to create program. Please try again.');
+      console.error('Error deleting program:', error);
+      alert('Failed to delete program. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsDeleting(false);
+      setDeleteConfirmId(null);
+      setDropdownOpen(null);
     }
   };
 
@@ -263,17 +403,19 @@ const Programs: React.FC = () => {
 
   const closeModal = () => {
     setIsCreateModalOpen(false);
+    setIsEditModalOpen(false);
+    setEditingProgram(null);
     resetForm();
   };
 
   // Filter programs based on search and filters
   const filteredPrograms = programs.filter(program => {
     const matchesSearch = program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         program.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTeam = selectedTeam === 'All Teams' || 
-                        program.program_assignments?.some(a => a.batch === selectedTeam);
+      program.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTeam = selectedTeam === 'All Teams' ||
+      program.program_assignments?.some(a => a.batch === selectedTeam);
     const matchesCategory = selectedCategory === 'All Categories' || program.category === selectedCategory;
-    
+
     return matchesSearch && matchesTeam && matchesCategory;
   });
 
@@ -422,8 +564,8 @@ const Programs: React.FC = () => {
                 {programs.length === 0 ? 'No Programs Found' : 'No Matching Programs'}
               </h3>
               <p className="text-gray-600 mb-6">
-                {programs.length === 0 
-                  ? 'Start by creating your first fitness program.' 
+                {programs.length === 0
+                  ? 'Start by creating your first fitness program.'
                   : 'Try adjusting your search criteria or filters.'}
               </p>
               {programs.length === 0 && (
@@ -453,25 +595,46 @@ const Programs: React.FC = () => {
                 {filteredPrograms.map((program) => (
                   <div
                     key={program.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => setSelectedProgram(program)}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setSelectedProgram(program)}
+                      >
                         <h3 className="font-semibold text-lg text-gray-900">{program.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{program.description}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {program.description.length > 100
+                            ? `${program.description.substring(0, 100)}...`
+                            : program.description
+                          }
+                        </p>
                         <div className="flex gap-4 mt-3">
                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                             {program.category}
                           </span>
-                          {program.program_assignments?.map((assignment, index) => (
-                            <span
-                              key={index}
-                              className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded"
-                            >
-                              {assignment.batch || assignment.players?.name || 'Unknown'}
-                            </span>
-                          ))}
+                          {(() => {
+                            const batchAssignments = program.program_assignments?.filter(a => a.batch) || [];
+                            const playerAssignments = program.program_assignments?.filter(a => a.player_id) || [];
+
+                            return (
+                              <>
+                                {batchAssignments.map((assignment, index) => (
+                                  <span
+                                    key={`batch-${index}`}
+                                    className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded"
+                                  >
+                                    {assignment.batch}
+                                  </span>
+                                ))}
+                                {playerAssignments.length > 0 && (
+                                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                    {playerAssignments.length} Player{playerAssignments.length > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
                           {program.youtube_video_urls.length > 0 && (
                             <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded flex items-center gap-1">
                               <Video size={12} />
@@ -480,9 +643,48 @@ const Programs: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <div className="text-right text-sm text-gray-500">
-                        <p>Created: {new Date(program.created_at).toLocaleDateString()}</p>
-                        <p>Updated: {new Date(program.updated_at).toLocaleDateString()}</p>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right text-sm text-gray-500">
+                          <p>Created: {new Date(program.created_at).toLocaleDateString()}</p>
+                          <p>Updated: {new Date(program.updated_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDropdownOpen(dropdownOpen === program.id ? null : program.id);
+                            }}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            <MoreVertical size={16} className="text-gray-500" />
+                          </button>
+
+                          {dropdownOpen === program.id && (
+                            <div className="absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(program);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <Edit3 size={14} />
+                                Edit
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmId(program.id);
+                                  setDropdownOpen(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                              >
+                                <Trash2 size={14} />
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -492,15 +694,19 @@ const Programs: React.FC = () => {
           )}
         </div>
 
-        {/* Create Program Modal */}
-        {isCreateModalOpen && (
+        {/* Create/Edit Program Modal */}
+        {(isCreateModalOpen || isEditModalOpen) && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Create New Fitness Program</h2>
-                    <p className="text-sm text-gray-600 mt-1">Create a fitness program and assign it to a team or players</p>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {isEditModalOpen ? 'Edit Fitness Program' : 'Create New Fitness Program'}
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {isEditModalOpen ? 'Update the fitness program details' : 'Create a fitness program and assign it to a team or players'}
+                    </p>
                   </div>
                   <button
                     onClick={closeModal}
@@ -680,7 +886,50 @@ const Programs: React.FC = () => {
                     className="flex-1 px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Creating...' : 'Create Program'}
+                    {isSubmitting
+                      ? (isEditModalOpen ? 'Updating...' : 'Creating...')
+                      : (isEditModalOpen ? 'Update Program' : 'Create Program')
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmId && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <Trash2 size={20} className="text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Delete Program</h3>
+                    <p className="text-sm text-gray-600">This action cannot be undone.</p>
+                  </div>
+                </div>
+
+                <p className="text-gray-700 mb-6">
+                  Are you sure you want to delete this fitness program? All associated assignments will also be removed.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirmId)}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Deleting...' : 'Delete Program'}
                   </button>
                 </div>
               </div>
@@ -688,7 +937,7 @@ const Programs: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Program Details Popup */}
       {selectedProgram && (
         <ProgramDetailsPopup
