@@ -17,6 +17,7 @@ interface Player {
     bowler_type: string;
     is_approved: boolean;
     created_at: string;
+    profile_photo_url?: string; // Add this field for profile photo
 }
 
 interface DashboardProps {
@@ -30,6 +31,45 @@ export default function Dashboard({ player, onNavigate }: DashboardProps) {
     
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    };
+
+    // Component for displaying profile picture or initials
+    const ProfileAvatar = ({ size = 'medium', className = '' }: { size?: 'small' | 'medium' | 'large', className?: string }) => {
+        const sizeClasses = {
+            small: 'w-10 h-10 text-sm',
+            medium: 'w-12 h-12 text-lg',
+            large: 'w-16 h-16 text-xl'
+        };
+
+        const baseClasses = `${sizeClasses[size]} rounded-full flex items-center justify-center font-bold shadow-lg ${className}`;
+
+        if (player.profile_photo_url) {
+            return (
+                <img
+                    src={player.profile_photo_url}
+                    alt={`${player.name}'s profile`}
+                    className={`${baseClasses} object-cover`}
+                    onError={(e) => {
+                        // Fallback to initials if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        const fallbackDiv = document.createElement('div');
+                        fallbackDiv.className = `${baseClasses} text-white`;
+                        fallbackDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                        fallbackDiv.textContent = getInitials(player.name);
+                        target.parentNode?.replaceChild(fallbackDiv, target);
+                    }}
+                />
+            );
+        }
+
+        return (
+            <div
+                className={`${baseClasses} text-white`}
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+            >
+                {getInitials(player.name)}
+            </div>
+        );
     };
 
     // const formatDate = (dateString: string) => {
@@ -52,12 +92,7 @@ export default function Dashboard({ player, onNavigate }: DashboardProps) {
                     {/* Welcome Header - Mobile */}
                     <div className="rounded-2xl p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${colors.primary[500]} 0%, ${colors.secondary[500]} 100%)` }}>
                         <div className="flex items-center space-x-4 mb-4">
-                            <div
-                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg"
-                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                            >
-                                {getInitials(player.name)}
-                            </div>
+                            <ProfileAvatar size="medium" />
                             <div className="flex-1">
                                 <h2 className="text-xl font-bold mb-1">Welcome back, {player.name}!</h2>
                                 <p className="text-blue-100 text-sm">Last activity: Today, 9:30 AM</p>
@@ -211,12 +246,7 @@ export default function Dashboard({ player, onNavigate }: DashboardProps) {
                 <div className="rounded-2xl p-8 text-white mb-6 shadow-lg" style={{ background: `linear-gradient(135deg, ${colors.primary[500]} 0%, ${colors.secondary[500]} 100%)` }}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                            <div
-                                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg"
-                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                            >
-                                {getInitials(player.name)}
-                            </div>
+                            <ProfileAvatar size="large" />
                             <div>
                                 <h2 className="text-3xl font-bold mb-1">Welcome back, {player.name}!</h2>
                                 <p className="text-blue-100 text-lg">Last activity: Today, 9:30 AM</p>

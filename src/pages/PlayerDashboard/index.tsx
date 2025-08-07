@@ -25,7 +25,82 @@ interface Player {
   bowler_type: string;
   is_approved: boolean;
   created_at: string;
+  profile_photo_url?: string; // Add profile photo URL field
 }
+
+// Profile Avatar Component - displays photo or initials
+type ProfileAvatarProps = {
+  player: Player | null;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+};
+
+const ProfileAvatar = ({ player, size = 'md', className = '' }: ProfileAvatarProps) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const sizeClasses = {
+    sm: 'w-8 h-8 text-xs',
+    md: 'w-10 h-10 text-sm',
+    lg: 'w-12 h-12 text-base'
+  };
+
+  const hasValidPhoto = player?.profile_photo_url && !imageError;
+
+  useEffect(() => {
+    // Reset image error state when player changes
+    setImageError(false);
+    setImageLoading(false);
+  }, [player?.profile_photo_url]);
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoading(false);
+  };
+
+  const handleImageLoadStart = () => {
+    setImageLoading(true);
+  };
+
+  if (hasValidPhoto) {
+    return (
+      <div className={`${sizeClasses[size]} rounded-full overflow-hidden bg-green-800 flex items-center justify-center ${className}`}>
+        {imageLoading && (
+          <div className="animate-pulse bg-gray-300 w-full h-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )}
+        <img
+          src={player.profile_photo_url}
+          alt={`${player.name}'s profile`}
+          className={`w-full h-full object-cover ${imageLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          onLoadStart={handleImageLoadStart}
+        />
+      </div>
+    );
+  }
+
+  // Fallback to initials
+  return (
+    <div className={`${sizeClasses[size]} bg-green-800 rounded-full flex items-center justify-center ${className}`}>
+      <span className="text-white font-bold">
+        {player ? getInitials(player.name) : 'U'}
+      </span>
+    </div>
+  );
+};
 
 // Navigation Component
 type NavigationProps = {
@@ -38,10 +113,6 @@ type NavigationProps = {
 };
 
 const Navigation = ({ activeTab, onTabChange, player, isOpen, onClose }: NavigationProps) => {
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
   const handleTabClick = (tabId: string) => {
     onTabChange(tabId);
     onClose(); // Close sidebar on mobile after selection
@@ -158,11 +229,7 @@ const Navigation = ({ activeTab, onTabChange, player, isOpen, onClose }: Navigat
         {/* Bottom Profile Section */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <div className="flex items-center space-x-3 mb-3">
-            <div className="w-10 h-10 bg-green-800 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">
-                {player ? getInitials(player.name) : 'U'}
-              </span>
-            </div>
+            <ProfileAvatar player={player} size="md" />
             <div className="flex-1 min-w-0">
               <p className="font-medium text-gray-900 truncate">
                 {player ? player.name : 'Unknown User'}
@@ -185,10 +252,6 @@ type MobileHeaderProps = {
 };
 
 const MobileHeader = ({ onMenuClick, player }: MobileHeaderProps) => {
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
   return (
     <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-3">
@@ -211,11 +274,7 @@ const MobileHeader = ({ onMenuClick, player }: MobileHeaderProps) => {
       </div>
 
       <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 bg-green-800 rounded-full flex items-center justify-center">
-          <span className="text-white font-bold text-xs">
-            {player ? getInitials(player.name) : 'U'}
-          </span>
-        </div>
+        <ProfileAvatar player={player} size="sm" />
       </div>
     </div>
   );
@@ -248,6 +307,32 @@ export default function PlayerDashboard() {
       setIsLoading(false);
     }
   }, [router]);
+
+  // Listen for localStorage changes to update player data when photo is updated
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const playerData = localStorage.getItem('player');
+        if (playerData) {
+          const parsedPlayer = JSON.parse(playerData);
+          setPlayer(parsedPlayer);
+        }
+      } catch (error) {
+        console.error('Error parsing updated player data:', error);
+      }
+    };
+
+    // Listen for storage events (when localStorage is updated from other tabs/components)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for a custom event that we can dispatch from the photo upload component
+    window.addEventListener('playerUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('playerUpdated', handleStorageChange);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('player');
