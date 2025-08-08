@@ -6,6 +6,14 @@ import { supabase } from '../../lib/supabaseClient';
 import StatsCards from './components/analysis/StatsCards';
 import FiltersSection from './components/analysis/FiltersSection';
 import DataTable from './components/analysis/DataTable';
+import type { jsPDF as JsPDFConstructor } from 'jspdf';
+
+declare global {
+  interface Window {
+    jsPDF?: typeof import('jspdf').jsPDF;
+    jspdf?: { jsPDF: typeof import('jspdf').jsPDF };
+  }
+}
 
 interface Player {
   id: string;
@@ -270,26 +278,26 @@ const Analysis: React.FC = () => {
   };
 
   // Load jsPDF library dynamically
-  const loadJsPDF = (): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      if ((window as any).jsPDF) {
-        resolve((window as any).jsPDF);
-        return;
-      }
+  const loadJsPDF = (): Promise<typeof import('jspdf').jsPDF> => {
+  return new Promise((resolve, reject) => {
+    if (window.jsPDF) {
+      resolve(window.jsPDF);
+      return;
+    }
 
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-      script.onload = () => {
-        if ((window as any).jspdf) {
-          resolve((window as any).jspdf.jsPDF);
-        } else {
-          reject(new Error('jsPDF failed to load'));
-        }
-      };
-      script.onerror = () => reject(new Error('Failed to load jsPDF'));
-      document.head.appendChild(script);
-    });
-  };
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = () => {
+      if (window.jspdf?.jsPDF) {
+        resolve(window.jspdf.jsPDF);
+      } else {
+        reject(new Error('jsPDF failed to load'));
+      }
+    };
+    script.onerror = () => reject(new Error('Failed to load jsPDF'));
+    document.head.appendChild(script);
+  });
+};
 
   // Export data to PDF with direct download
   const exportToPDF = async () => {
@@ -349,7 +357,7 @@ const Analysis: React.FC = () => {
 
       // Table rows
       doc.setFont('helvetica', 'normal');
-      let rowCount = 0;
+      const rowCount = 0;
       
       formEntries.forEach((entry, entryIndex) => {
         // Check if we need a new page
