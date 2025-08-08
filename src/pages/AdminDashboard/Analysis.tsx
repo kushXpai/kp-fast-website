@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/pages/AdminDashboard/Analysis.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Download } from 'lucide-react';
+import { Calendar, Download, Filter } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import StatsCards from './components/analysis/StatsCards';
 import FiltersSection from './components/analysis/FiltersSection';
@@ -51,7 +51,7 @@ const Analysis: React.FC = () => {
   const [selectedTeam, setSelectedTeam] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [selectedFormType, setSelectedFormType] = useState('');
-  const [dateRange, setDateRange] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
   const [teams, setTeams] = useState<string[]>([]);
   const [formTypes, setFormTypes] = useState<string[]>([]);
 
@@ -79,10 +79,8 @@ const Analysis: React.FC = () => {
     }
   };
 
-  // Fetch form types (simulating dynamic fetch; adjust based on your schema)
+  // Fetch form types
   const fetchFormTypes = async () => {
-    // In a real scenario, you might fetch form types from a config table or metadata
-    // Here, we'll set them based on known tables, but you can replace with a Supabase query
     const types = ['Monitoring', 'Wellness', 'Hydration', 'Recovery'];
     console.log('Fetched form types:', types);
     setFormTypes(types);
@@ -102,7 +100,6 @@ const Analysis: React.FC = () => {
       console.log('Fetched players:', data);
       setPlayers(data || []);
       
-      // Update stats
       const uniqueTeams = new Set(data?.map(p => p.batch).filter(Boolean));
       setStats(prev => ({
         ...prev,
@@ -177,30 +174,9 @@ const Analysis: React.FC = () => {
         }
       }
 
-      if (dateRange) {
-        const now = new Date();
-        let startDate = new Date();
-        
-        switch (dateRange) {
-          case 'last7days':
-            startDate.setDate(now.getDate() - 7);
-            break;
-          case 'last30days':
-            startDate.setDate(now.getDate() - 30);
-            break;
-          case 'last90days':
-            startDate.setDate(now.getDate() - 90);
-            break;
-          case 'lastYear':
-            startDate.setFullYear(now.getFullYear() - 1);
-            break;
-          default:
-            startDate = new Date(0);
-        }
-        
-        if (dateRange !== 'all') {
-          queryBuilder = queryBuilder.gte('date', startDate.toISOString().split('T')[0]);
-        }
+      if (selectedDate) {
+        console.log('Filtering by specific date:', selectedDate);
+        queryBuilder = queryBuilder.eq('date', selectedDate);
       }
 
       queryBuilder = queryBuilder.order('date', { ascending: false });
@@ -240,44 +216,269 @@ const Analysis: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedFormType, selectedPlayer, selectedTeam, dateRange, players]);
+  }, [selectedFormType, selectedPlayer, selectedTeam, selectedDate, players]);
 
-  // Export data to CSV
-  const exportToCSV = () => {
-    if (formEntries.length === 0) return;
-
-    const headers = getCSVHeaders();
-    const csvContent = [
-      headers.join(','),
-      ...formEntries.map(entry => headers.map(header => {
-        const fieldKey = header.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
-        let value = entry[fieldKey as keyof FormEntry];
-        
-        if (Array.isArray(value)) {
-          value = value.join('; ');
+  // Helper function to get background colors for different values
+  const getBadgeColor = (value: string | number, type: string): string => {
+    switch (type) {
+      case 'session_type':
+        switch (value) {
+          case 'Match': return '#DC2626'; // red-600
+          case 'Training': return '#2563EB'; // blue-600
+          case 'Gym': return '#059669'; // emerald-600
+          case 'Conditioning': return '#7C3AED'; // violet-600
+          default: return '#6B7280'; // gray-500
         }
-        
-        return typeof value === 'string' ? `"${value}"` : value || '';
-      }).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedFormType}_form_data_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+      case 'session_intensity':
+        const intensity = parseInt(value as string) || 0;
+        if (intensity >= 8) return '#DC2626'; // High intensity - red
+        if (intensity >= 6) return '#D97706'; // Medium intensity - amber
+        return '#059669'; // Low intensity - emerald
+      case 'wellness_score':
+        const score = parseInt(value as string) || 3;
+        if (score >= 4) return '#059669'; // Good - emerald
+        if (score >= 3) return '#D97706'; // Average - amber
+        return '#DC2626'; // Poor - red
+      case 'muscle_soreness':
+        const soreness = parseInt(value as string) || 3;
+        if (soreness <= 2) return '#059669'; // Low soreness - emerald
+        if (soreness <= 3) return '#D97706'; // Medium soreness - amber
+        return '#DC2626'; // High soreness - red
+      case 'menstrual_cycle':
+        return value === 'Yes' ? '#EC4899' : '#6B7280'; // Pink for Yes, gray for No
+      case 'injury_status':
+        return (value === 'Yes' || value === 'Present') ? '#DC2626' : '#059669'; // Red for injury, emerald for no injury
+      case 'session_number':
+        return '#2563EB'; // blue-600
+      default:
+        return '#6B7280'; // gray-500
+    }
   };
 
-  const getCSVHeaders = () => {
+  // Generate filename based on filters
+  const generateFilename = (): string => {
+    const today = new Date();
+    const dateStr = selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : today.toISOString().split('T')[0];
+    
+    if (selectedPlayer) {
+      return `${selectedPlayer.replace(/\s+/g, '_')}_${dateStr}_${selectedFormType}`;
+    } else if (selectedTeam) {
+      return `${selectedTeam.replace(/\s+/g, '_')}_${dateStr}_${selectedFormType}`;
+    } else {
+      return `All_Teams_${dateStr}_${selectedFormType}`;
+    }
+  };
+
+  // Load jsPDF library dynamically
+  const loadJsPDF = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if ((window as any).jsPDF) {
+        resolve((window as any).jsPDF);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => {
+        if ((window as any).jspdf) {
+          resolve((window as any).jspdf.jsPDF);
+        } else {
+          reject(new Error('jsPDF failed to load'));
+        }
+      };
+      script.onerror = () => reject(new Error('Failed to load jsPDF'));
+      document.head.appendChild(script);
+    });
+  };
+
+  // Export data to PDF with direct download
+  const exportToPDF = async () => {
+    if (formEntries.length === 0) return;
+
+    try {
+      const filename = generateFilename();
+      
+      // Load jsPDF
+      const jsPDF = await loadJsPDF();
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Set up styling
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 10;
+      const usableWidth = pageWidth - (margin * 2);
+      
+      let yPosition = margin + 10;
+
+      // Header
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${selectedFormType} Form Data`, pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 8;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}`, pageWidth / 2, yPosition, { align: 'center' });
+
+      yPosition += 15;
+
+      // Table headers
+      const headers = getTableHeaders();
+      const colWidth = usableWidth / headers.length;
+      
+      doc.setFillColor(249, 250, 251);
+      doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      headers.forEach((header, index) => {
+        doc.text(header, margin + (index * colWidth) + 2, yPosition, { maxWidth: colWidth - 4 });
+      });
+      
+      yPosition += 10;
+
+      // Table rows
+      doc.setFont('helvetica', 'normal');
+      let rowCount = 0;
+      
+      formEntries.forEach((entry, entryIndex) => {
+        // Check if we need a new page
+        if (yPosition > pageHeight - 30) {
+          doc.addPage();
+          yPosition = margin + 10;
+          
+          // Repeat headers on new page
+          doc.setFillColor(249, 250, 251);
+          doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
+          doc.setFont('helvetica', 'bold');
+          headers.forEach((header, index) => {
+            doc.text(header, margin + (index * colWidth) + 2, yPosition, { maxWidth: colWidth - 4 });
+          });
+          yPosition += 10;
+          doc.setFont('helvetica', 'normal');
+        }
+
+        // Alternate row colors
+        if (entryIndex % 2 === 0) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
+        }
+
+        let rowData: string[] = [];
+        
+        switch (selectedFormType) {
+          case 'Monitoring':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              String(entry.session_number || '-'),
+              entry.session_type || '-',
+              `${entry.session_duration || 0} min`,
+              `${entry.session_intensity || 0}/10`,
+              String(entry.balls_bowled || 0),
+              (entry.comments || '-').substring(0, 30) + (entry.comments && entry.comments.length > 30 ? '...' : '')
+            ];
+            break;
+            
+          case 'Wellness':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              `${entry.sleep_quality || 3}/5`,
+              `${entry.physical_readiness || 3}/5`,
+              `${entry.mood || 3}/5`,
+              `${entry.mental_alertness || 3}/5`,
+              `${entry.muscle_soreness || 3}/5`,
+              entry.menstrual_cycle || 'No',
+              (entry.comments || '-').substring(0, 20) + (entry.comments && entry.comments.length > 20 ? '...' : '')
+            ];
+            break;
+            
+          case 'Hydration':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              entry.session_type || '-',
+              String(entry.session_number || '-'),
+              `${entry.pre_session_weight || 0} kg`,
+              `${entry.post_session_weight || 0} kg`,
+              `${entry.liquid_consumed || 0} ml`,
+              `${entry.urination_output || 0} ml`,
+              (entry.comments || '-').substring(0, 20) + (entry.comments && entry.comments.length > 20 ? '...' : '')
+            ];
+            break;
+            
+          case 'Recovery':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              entry.recovery_methods && entry.recovery_methods.length > 0 ? entry.recovery_methods.join(', ').substring(0, 30) : '-',
+              entry.injury_present || entry.injury_status || 'No',
+              (entry.comments || '-').substring(0, 30) + (entry.comments && entry.comments.length > 30 ? '...' : '')
+            ];
+            break;
+        }
+
+        // Add colored indicators for specific columns
+        rowData.forEach((cellData, colIndex) => {
+          let textColor = [0, 0, 0]; // Default black
+          
+          // Apply colors based on data type and value
+          if (selectedFormType === 'Wellness' && colIndex >= 2 && colIndex <= 6) {
+            const value = parseInt(cellData.split('/')[0]) || 3;
+            if (colIndex === 6) { // Muscle soreness (reverse logic)
+              textColor = value <= 2 ? [5, 150, 105] : value <= 3 ? [217, 119, 6] : [220, 38, 38];
+            } else { // Other wellness scores
+              textColor = value >= 4 ? [5, 150, 105] : value >= 3 ? [217, 119, 6] : [220, 38, 38];
+            }
+          } else if (selectedFormType === 'Monitoring' && colIndex === 5) { // Intensity
+            const intensity = parseInt(cellData.split('/')[0]) || 0;
+            textColor = intensity >= 8 ? [220, 38, 38] : intensity >= 6 ? [217, 119, 6] : [5, 150, 105];
+          } else if (selectedFormType === 'Recovery' && colIndex === 3) { // Injury status
+            textColor = (cellData === 'Yes' || cellData === 'Present') ? [220, 38, 38] : [5, 150, 105];
+          }
+
+          doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+          doc.text(cellData, margin + (colIndex * colWidth) + 2, yPosition, { maxWidth: colWidth - 4 });
+        });
+        
+        doc.setTextColor(0, 0, 0); // Reset to black
+        yPosition += 8;
+      });
+
+      // Footer
+      yPosition += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text(`Total Entries: ${formEntries.length} | Export Format: PDF`, pageWidth / 2, yPosition, { align: 'center' });
+
+      // Save the PDF
+      doc.save(`${filename}.pdf`);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
+  };
+
+  const getTableHeaders = () => {
     switch (selectedFormType) {
       case 'Monitoring':
-        return ['Date', 'Player Name', 'Session Number', 'Session Type', 'Session Duration', 'Session Intensity', 'Balls Bowled', 'Comments'];
+        return ['Date', 'Player Name', 'Session Number', 'Session Type', 'Duration (min)', 'Intensity (/10)', 'Balls Bowled', 'Comments'];
       case 'Wellness':
         return ['Date', 'Player Name', 'Sleep Quality', 'Physical Readiness', 'Mood', 'Mental Alertness', 'Muscle Soreness', 'Menstrual Cycle', 'Comments'];
       case 'Hydration':
-        return ['Date', 'Player Name', 'Session Type', 'Session Number', 'Pre Session Weight', 'Post Session Weight', 'Liquid Consumed', 'Urination Output', 'Comments'];
+        return ['Date', 'Player Name', 'Session Type', 'Session Number', 'Pre-Session Weight', 'Post-Session Weight', 'Liquid Consumed', 'Urination Output', 'Comments'];
       case 'Recovery':
         return ['Date', 'Player Name', 'Recovery Methods', 'Injury Present', 'Comments'];
       default:
@@ -289,7 +490,6 @@ const Analysis: React.FC = () => {
   const handleTeamChange = (team: string) => {
     console.log('Team changed to:', team);
     setSelectedTeam(team);
-    setSelectedPlayer('');
   };
 
   const handlePlayerChange = (player: string) => {
@@ -302,9 +502,9 @@ const Analysis: React.FC = () => {
     setSelectedFormType(formType);
   };
 
-  const handleDateRangeChange = (range: string) => {
-    console.log('Date range changed to:', range);
-    setDateRange(range);
+  const handleDateChange = (date: string) => {
+    console.log('Date changed to:', date);
+    setSelectedDate(date);
   };
 
   // Initial data fetch
@@ -316,11 +516,11 @@ const Analysis: React.FC = () => {
 
   // Fetch form entries when filters change
   useEffect(() => {
-    console.log('Filters changed:', { selectedTeam, selectedPlayer, selectedFormType, playersLength: players.length });
+    console.log('Filters changed:', { selectedTeam, selectedPlayer, selectedFormType, selectedDate, playersLength: players.length });
     if (players.length > 0) {
       fetchFormEntries();
     }
-  }, [players, selectedTeam, selectedPlayer, selectedFormType, dateRange, fetchFormEntries]);
+  }, [players, selectedTeam, selectedPlayer, selectedFormType, selectedDate, fetchFormEntries]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -329,30 +529,16 @@ const Analysis: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Form Analytics</h1>
-              <p className="text-gray-600 mt-1">View player form submissions by team, player, and form type</p>
+              <p className="text-gray-600 mt-1">Analyze player form submissions with step-by-step filtering</p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="relative">
-                <select
-                  value={dateRange}
-                  onChange={(e) => handleDateRangeChange(e.target.value)}
-                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All Time</option>
-                  <option value="last7days">Last 7 Days</option>
-                  <option value="last30days">Last 30 Days</option>
-                  <option value="last90days">Last 90 Days</option>
-                  <option value="lastYear">Last Year</option>
-                </select>
-                <Calendar className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              </div>
               <button
-                onClick={exportToCSV}
+                onClick={exportToPDF}
                 disabled={formEntries.length === 0}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Export Data
+                Export PDF
               </button>
             </div>
           </div>
@@ -367,12 +553,14 @@ const Analysis: React.FC = () => {
           selectedTeam={selectedTeam}
           selectedPlayer={selectedPlayer}
           selectedFormType={selectedFormType}
+          dateRange={selectedDate}
           onTeamChange={handleTeamChange}
           onPlayerChange={handlePlayerChange}
           onFormTypeChange={handleFormTypeChange}
+          onDateRangeChange={handleDateChange}
         />
 
-        {selectedFormType && (
+        {selectedFormType && (selectedTeam || selectedPlayer) && (
           <DataTable
             formEntries={formEntries}
             formType={selectedFormType}
@@ -381,12 +569,22 @@ const Analysis: React.FC = () => {
           />
         )}
 
-        {!selectedFormType && (
+        {!selectedFormType && (selectedTeam || selectedPlayer) && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div className="text-gray-500">
               <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Form Type</h3>
               <p>Please select a form type to view the data table with entries.</p>
+            </div>
+          </div>
+        )}
+
+        {(!selectedTeam && !selectedPlayer) && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div className="text-gray-500">
+              <Filter className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Start Your Analysis</h3>
+              <p>Follow the 4-step process above to filter and view form data.</p>
             </div>
           </div>
         )}
