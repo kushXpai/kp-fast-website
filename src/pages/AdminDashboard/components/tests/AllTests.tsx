@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Select from './Select';
+import { exportToPDF } from '@/utils/pdfExport';
 
 interface TestResult {
   id: string;
@@ -178,6 +179,20 @@ const AllTests = () => {
     }
   };
 
+  const handleExportSelectedResults = () => {
+    if (!selectedTestResults || selectedTestResults.length === 0) {
+      alert('No test results selected to export.');
+      return;
+    }
+
+    try {
+      exportToPDF(selectedTestResults, selectedBatch, selectedTestResults[0].test_date);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
+  };
+
   // Filter test dates based on date filter
   const filteredTestDates = testDates.filter(date => {
     if (!dateFilter) return true;
@@ -253,9 +268,20 @@ const AllTests = () => {
       {/* Selected Test Results for All Players */}
       {selectedTestResults && selectedTestResults.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-lg font-medium mb-4">
-            Test Results - {formatDate(selectedTestResults[0].test_date)} - All Players ({selectedTestResults.length} players)
-          </h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">
+              Test Results - {formatDate(selectedTestResults[0].test_date)} - All Players ({selectedTestResults.length} players)
+            </h3>
+            <button
+              onClick={handleExportSelectedResults}
+              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export PDF
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border border-gray-200 rounded-lg">
               <thead>
