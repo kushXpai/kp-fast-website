@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Select from './components/tests/Select';
 import AllTests from './components/tests/AllTests';
-import { exportCreateTabToPDF } from '@/utils/pdfExport';
 import React from 'react';
 
 export default function Tests() {
