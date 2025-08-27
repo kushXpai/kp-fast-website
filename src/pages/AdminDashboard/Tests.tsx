@@ -54,15 +54,6 @@ export default function Tests() {
     });
   };
 
-  const handleExportPDF = () => {
-    try {
-      exportCreateTabToPDF(players, testResults, selectedTeam, testDate);
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Error generating PDF. Please try again.');
-    }
-  };
-
   const handleSubmit = async () => {
     const results = Object.entries(testResults)
       .filter(([, results]) => Object.keys(results).length > 0)
