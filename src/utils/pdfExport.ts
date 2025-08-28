@@ -28,6 +28,7 @@ interface TestResult {
 const createChartImage = async (
   type: 'bar' | 'line',
   labels: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   datasets: any[],
   title: string,
   width = 1600,
