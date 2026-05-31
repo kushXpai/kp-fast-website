@@ -122,7 +122,7 @@ export default function RecentSubmissionsCard({ player, onNavigate }: RecentSubm
 
     useEffect(() => {
         fetchRecentSubmissions();
-    }, [player.id, fetchRecentSubmissions]);
+    }, [fetchRecentSubmissions, player?.id]);
 
     // Now handle the early return AFTER all hooks are called
     if (!player || !player.id) {
