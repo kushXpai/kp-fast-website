@@ -17,21 +17,22 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     try {
+      setIsLoading(true);
+
       console.log('Attempting login with email:', email);
-      
-      // Query the database for admin
-      const { data, error: queryError } = await supabase
+
+      const { data, error } = await supabase
         .from('admins')
         .select('*')
-        .eq('email', email)
-        .single();
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
 
-      console.log('Query result:', { data, error: queryError });
+      console.log('Query result:', { data, error });
 
-      if (queryError) {
-        console.error('Database query error:', queryError);
+      if (error) {
+        console.error('Database query error:', error);
         setError('Database error occurred');
         return;
       }
@@ -42,10 +43,10 @@ export default function AdminLogin() {
         return;
       }
 
-      // Use bcrypt to compare the password with the hashed password
+      // bcrypt check (dynamic import is fine)
       const bcrypt = await import('bcryptjs');
       const isValidPassword = await bcrypt.compare(password, data.password);
-      
+
       if (!isValidPassword) {
         console.log('Password mismatch');
         setError('Invalid email or password');
@@ -53,18 +54,15 @@ export default function AdminLogin() {
       }
 
       console.log('Login successful, storing admin data');
-      
-      // Store admin data in localStorage
+
       localStorage.setItem('admin', JSON.stringify(data));
-      
-      // Clear any existing player data to prevent conflicts
+
       localStorage.removeItem('player');
-      
+
       console.log('Redirecting to admin dashboard');
-      
-      // Fix: Correct path to admin dashboard
+
       await router.push('/AdminDashboard');
-      
+
     } catch (error) {
       console.error('Login error:', error);
       setError('Login failed. Please try again.');
