@@ -63,7 +63,6 @@ const Analysis: React.FC = () => {
   const [teams, setTeams] = useState<string[]>([]);
   const [formTypes, setFormTypes] = useState<string[]>([]);
 
-  // Stats for the cards
   const [stats, setStats] = useState({
     totalTeams: 0,
     totalPlayers: 0,
@@ -71,7 +70,6 @@ const Analysis: React.FC = () => {
     formTypes: 0
   });
 
-  // Fetch teams dynamically
   const fetchTeams = async () => {
     try {
       const { data, error } = await supabase
@@ -80,22 +78,18 @@ const Analysis: React.FC = () => {
         .eq('is_approved', true);
       if (error) throw error;
       const uniqueTeams = Array.from(new Set(data?.map(p => p.batch).filter(Boolean)));
-      console.log('Fetched teams:', uniqueTeams);
       setTeams(uniqueTeams);
     } catch (error) {
       console.error('Error fetching teams:', error);
     }
   };
 
-  // Fetch form types
   const fetchFormTypes = async () => {
     const types = ['Monitoring', 'Wellness', 'Hydration', 'Recovery'];
-    console.log('Fetched form types:', types);
     setFormTypes(types);
     setStats(prev => ({ ...prev, formTypes: types.length }));
   };
 
-  // Fetch players data
   const fetchPlayers = async () => {
     try {
       const { data, error } = await supabase
@@ -104,10 +98,8 @@ const Analysis: React.FC = () => {
         .eq('is_approved', true);
 
       if (error) throw error;
-      
-      console.log('Fetched players:', data);
       setPlayers(data || []);
-      
+
       const uniqueTeams = new Set(data?.map(p => p.batch).filter(Boolean));
       setStats(prev => ({
         ...prev,
@@ -119,10 +111,8 @@ const Analysis: React.FC = () => {
     }
   };
 
-  // Fetch form entries based on selected form type
   const fetchFormEntries = useCallback(async () => {
     if (!selectedFormType) {
-      console.log('No form type selected, skipping fetch');
       setFormEntries([]);
       return;
     }
@@ -131,7 +121,7 @@ const Analysis: React.FC = () => {
     try {
       let tableName = '';
       let selectFields = '';
-      
+
       switch (selectedFormType) {
         case 'Monitoring':
           tableName = 'monitoring_forms';
@@ -150,7 +140,6 @@ const Analysis: React.FC = () => {
           selectFields = 'id, date, player_id, recovery_methods, injury_present, comments';
           break;
         default:
-          console.warn('Invalid form type:', selectedFormType);
           setFormEntries([]);
           return;
       }
@@ -160,22 +149,16 @@ const Analysis: React.FC = () => {
       if (selectedPlayer) {
         const selectedPlayerObj = players.find(p => p.name === selectedPlayer);
         if (selectedPlayerObj) {
-          console.log('Filtering by player_id:', selectedPlayerObj.id);
           queryBuilder = queryBuilder.eq('player_id', selectedPlayerObj.id);
-        } else {
-          console.warn('Selected player not found:', selectedPlayer);
         }
       }
 
       if (selectedTeam && !selectedPlayer) {
         const teamPlayers = players.filter(p => String(p.batch) === String(selectedTeam));
         const playerIds = teamPlayers.map(p => p.id);
-        console.log('Team players:', teamPlayers);
-        console.log('Player IDs for team:', playerIds);
         if (playerIds.length > 0) {
           queryBuilder = queryBuilder.in('player_id', playerIds);
         } else {
-          console.warn(`No players found for team: ${selectedTeam}`);
           setFormEntries([]);
           setStats(prev => ({ ...prev, formEntries: 0 }));
           return;
@@ -183,25 +166,16 @@ const Analysis: React.FC = () => {
       }
 
       if (selectedDate) {
-        console.log('Filtering by specific date:', selectedDate);
         queryBuilder = queryBuilder.eq('date', selectedDate);
       }
 
       queryBuilder = queryBuilder.order('date', { ascending: false });
 
       const { data, error } = await queryBuilder;
-
-      if (error) {
-        console.error('Supabase query error:', error);
-        throw error;
-      }
-
-      console.log('Raw data from Supabase:', data);
-      console.log('Available players for mapping:', players);
+      if (error) throw error;
 
       const entriesWithPlayerNames = (data as unknown as FormEntry[])?.map(entry => {
         const player = players.find(p => p.id === entry.player_id);
-        console.log(`Mapping player_id ${entry.player_id} to player:`, player);
         return {
           ...entry,
           player_name: player?.name || 'Unknown Player',
@@ -209,14 +183,8 @@ const Analysis: React.FC = () => {
         };
       }) || [];
 
-      console.log('Processed entries:', entriesWithPlayerNames);
-
       setFormEntries(entriesWithPlayerNames);
-      
-      setStats(prev => ({
-        ...prev,
-        formEntries: entriesWithPlayerNames.length
-      }));
+      setStats(prev => ({ ...prev, formEntries: entriesWithPlayerNames.length }));
 
     } catch (error) {
       console.error('Error fetching form entries:', error);
@@ -226,257 +194,46 @@ const Analysis: React.FC = () => {
     }
   }, [selectedFormType, selectedPlayer, selectedTeam, selectedDate, players]);
 
-  // Helper function to get background colors for different values
-  const getBadgeColor = (value: string | number, type: string): string => {
-    switch (type) {
-      case 'session_type':
-        switch (value) {
-          case 'Match': return '#DC2626'; // red-600
-          case 'Training': return '#2563EB'; // blue-600
-          case 'Gym': return '#059669'; // emerald-600
-          case 'Conditioning': return '#7C3AED'; // violet-600
-          default: return '#6B7280'; // gray-500
-        }
-      case 'session_intensity':
-        const intensity = parseInt(value as string) || 0;
-        if (intensity >= 8) return '#DC2626'; // High intensity - red
-        if (intensity >= 6) return '#D97706'; // Medium intensity - amber
-        return '#059669'; // Low intensity - emerald
-      case 'wellness_score':
-        const score = parseInt(value as string) || 3;
-        if (score >= 4) return '#059669'; // Good - emerald
-        if (score >= 3) return '#D97706'; // Average - amber
-        return '#DC2626'; // Poor - red
-      case 'muscle_soreness':
-        const soreness = parseInt(value as string) || 3;
-        if (soreness <= 2) return '#059669'; // Low soreness - emerald
-        if (soreness <= 3) return '#D97706'; // Medium soreness - amber
-        return '#DC2626'; // High soreness - red
-      case 'menstrual_cycle':
-        return value === 'Yes' ? '#EC4899' : '#6B7280'; // Pink for Yes, gray for No
-      case 'injury_status':
-        return (value === 'Yes' || value === 'Present') ? '#DC2626' : '#059669'; // Red for injury, emerald for no injury
-      case 'session_number':
-        return '#2563EB'; // blue-600
-      default:
-        return '#6B7280'; // gray-500
-    }
-  };
-
-  // Generate filename based on filters
   const generateFilename = (): string => {
     const today = new Date();
-    const dateStr = selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : today.toISOString().split('T')[0];
-    
-    if (selectedPlayer) {
-      return `${selectedPlayer.replace(/\s+/g, '_')}_${dateStr}_${selectedFormType}`;
-    } else if (selectedTeam) {
-      return `${selectedTeam.replace(/\s+/g, '_')}_${dateStr}_${selectedFormType}`;
-    } else {
-      return `All_Teams_${dateStr}_${selectedFormType}`;
-    }
+    const dateStr = selectedDate
+      ? new Date(selectedDate).toISOString().split('T')[0]
+      : today.toISOString().split('T')[0];
+
+    if (selectedPlayer) return `${selectedPlayer.replace(/\s+/g, '_')}_${dateStr}_${selectedFormType}`;
+    if (selectedTeam) return `${selectedTeam.replace(/\s+/g, '_')}_${dateStr}_${selectedFormType}`;
+    return `All_Teams_${dateStr}_${selectedFormType}`;
   };
 
-  // Load jsPDF library dynamically
   const loadJsPDF = (): Promise<typeof import('jspdf').jsPDF> => {
-  return new Promise((resolve, reject) => {
-    if (window.jsPDF) {
-      resolve(window.jsPDF);
-      return;
-    }
+    return new Promise((resolve, reject) => {
+      if (window.jsPDF) { resolve(window.jsPDF); return; }
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => {
+        if (window.jspdf?.jsPDF) resolve(window.jspdf.jsPDF);
+        else reject(new Error('jsPDF failed to load'));
+      };
+      script.onerror = () => reject(new Error('Failed to load jsPDF'));
+      document.head.appendChild(script);
+    });
+  };
 
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    script.onload = () => {
-      if (window.jspdf?.jsPDF) {
-        resolve(window.jspdf.jsPDF);
-      } else {
-        reject(new Error('jsPDF failed to load'));
-      }
-    };
-    script.onerror = () => reject(new Error('Failed to load jsPDF'));
-    document.head.appendChild(script);
-  });
-};
-
-  // Export data to PDF with direct download
-  const exportToPDF = async () => {
-    if (formEntries.length === 0) return;
-
-    try {
-      const filename = generateFilename();
-      
-      // Load jsPDF
-      const jsPDF = await loadJsPDF();
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      // Set up styling
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 10;
-      const usableWidth = pageWidth - (margin * 2);
-      
-      let yPosition = margin + 10;
-
-      // Header
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${selectedFormType} Form Data`, pageWidth / 2, yPosition, { align: 'center' });
-      
-      yPosition += 8;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}`, pageWidth / 2, yPosition, { align: 'center' });
-
-      yPosition += 15;
-
-      // Table headers
-      const headers = getTableHeaders();
-      const colWidth = usableWidth / headers.length;
-      
-      doc.setFillColor(249, 250, 251);
-      doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
-      
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      headers.forEach((header, index) => {
-        doc.text(header, margin + (index * colWidth) + 2, yPosition, { maxWidth: colWidth - 4 });
-      });
-      
-      yPosition += 10;
-
-      // Table rows
-      doc.setFont('helvetica', 'normal');
-      const rowCount = 0;
-      
-      formEntries.forEach((entry, entryIndex) => {
-        // Check if we need a new page
-        if (yPosition > pageHeight - 30) {
-          doc.addPage();
-          yPosition = margin + 10;
-          
-          // Repeat headers on new page
-          doc.setFillColor(249, 250, 251);
-          doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
-          doc.setFont('helvetica', 'bold');
-          headers.forEach((header, index) => {
-            doc.text(header, margin + (index * colWidth) + 2, yPosition, { maxWidth: colWidth - 4 });
-          });
-          yPosition += 10;
-          doc.setFont('helvetica', 'normal');
-        }
-
-        // Alternate row colors
-        if (entryIndex % 2 === 0) {
-          doc.setFillColor(250, 250, 250);
-          doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
-        }
-
-        let rowData: string[] = [];
-        
-        switch (selectedFormType) {
-          case 'Monitoring':
-            rowData = [
-              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
-              entry.player_name || 'Unknown',
-              String(entry.session_number || '-'),
-              entry.session_type || '-',
-              `${entry.session_duration || 0} min`,
-              `${entry.session_intensity || 0}/10`,
-              String(entry.balls_bowled || 0),
-              (entry.comments || '-').substring(0, 30) + (entry.comments && entry.comments.length > 30 ? '...' : '')
-            ];
-            break;
-            
-          case 'Wellness':
-            rowData = [
-              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
-              entry.player_name || 'Unknown',
-              `${entry.sleep_quality || 3}/5`,
-              `${entry.physical_readiness || 3}/5`,
-              `${entry.mood || 3}/5`,
-              `${entry.mental_alertness || 3}/5`,
-              `${entry.muscle_soreness || 3}/5`,
-              entry.menstrual_cycle || 'No',
-              (entry.comments || '-').substring(0, 20) + (entry.comments && entry.comments.length > 20 ? '...' : '')
-            ];
-            break;
-            
-          case 'Hydration':
-            rowData = [
-              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
-              entry.player_name || 'Unknown',
-              entry.session_type || '-',
-              String(entry.session_number || '-'),
-              `${entry.pre_session_weight || 0} kg`,
-              `${entry.post_session_weight || 0} kg`,
-              `${entry.liquid_consumed || 0} ml`,
-              `${entry.urination_output || 0} ml`,
-              (entry.comments || '-').substring(0, 20) + (entry.comments && entry.comments.length > 20 ? '...' : '')
-            ];
-            break;
-            
-          case 'Recovery':
-            rowData = [
-              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
-              entry.player_name || 'Unknown',
-              entry.recovery_methods && entry.recovery_methods.length > 0 ? entry.recovery_methods.join(', ').substring(0, 30) : '-',
-              entry.injury_present || entry.injury_status || 'No',
-              (entry.comments || '-').substring(0, 30) + (entry.comments && entry.comments.length > 30 ? '...' : '')
-            ];
-            break;
-        }
-
-        // Add colored indicators for specific columns
-        rowData.forEach((cellData, colIndex) => {
-          let textColor = [0, 0, 0]; // Default black
-          
-          // Apply colors based on data type and value
-          if (selectedFormType === 'Wellness' && colIndex >= 2 && colIndex <= 6) {
-            const value = parseInt(cellData.split('/')[0]) || 3;
-            if (colIndex === 6) { // Muscle soreness (reverse logic)
-              textColor = value <= 2 ? [5, 150, 105] : value <= 3 ? [217, 119, 6] : [220, 38, 38];
-            } else { // Other wellness scores
-              textColor = value >= 4 ? [5, 150, 105] : value >= 3 ? [217, 119, 6] : [220, 38, 38];
-            }
-          } else if (selectedFormType === 'Monitoring' && colIndex === 5) { // Intensity
-            const intensity = parseInt(cellData.split('/')[0]) || 0;
-            textColor = intensity >= 8 ? [220, 38, 38] : intensity >= 6 ? [217, 119, 6] : [5, 150, 105];
-          } else if (selectedFormType === 'Recovery' && colIndex === 3) { // Injury status
-            textColor = (cellData === 'Yes' || cellData === 'Present') ? [220, 38, 38] : [5, 150, 105];
-          }
-
-          doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-          doc.text(cellData, margin + (colIndex * colWidth) + 2, yPosition, { maxWidth: colWidth - 4 });
-        });
-        
-        doc.setTextColor(0, 0, 0); // Reset to black
-        yPosition += 8;
-      });
-
-      // Footer
-      yPosition += 10;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'italic');
-      doc.text(`Total Entries: ${formEntries.length} | Export Format: PDF`, pageWidth / 2, yPosition, { align: 'center' });
-
-      // Save the PDF
-      doc.save(`${filename}.pdf`);
-      
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
-    }
+  // Convert an image URL to base64 via canvas
+  const loadImageAsBase64 = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+      img.src = url;
+    });
   };
 
   const getTableHeaders = () => {
@@ -494,40 +251,224 @@ const Analysis: React.FC = () => {
     }
   };
 
-  // Handle filter changes
-  const handleTeamChange = (team: string) => {
-    console.log('Team changed to:', team);
-    setSelectedTeam(team);
+  const exportToPDF = async () => {
+    if (formEntries.length === 0) return;
+
+    try {
+      const filename = generateFilename();
+      const jsPDF = await loadJsPDF();
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 10;
+      const usableWidth = pageWidth - margin * 2;
+
+      // --- Logo config ---
+      // Place your logo at public/All-Stars-Cricket.jpeg (or adjust the path below)
+      const LOGO_PATH = '/All-Stars-Cricket.jpeg';
+      const LOGO_W = 35; // mm
+      const LOGO_H = 14; // mm
+      const LOGO_X = margin;
+      const LOGO_Y = margin;
+
+      // Try to load logo; if it fails, we skip it gracefully
+      let logoBase64: string | null = null;
+      try {
+        logoBase64 = await loadImageAsBase64(LOGO_PATH);
+      } catch {
+        console.warn('Logo not found at', LOGO_PATH, '— skipping logo in PDF.');
+      }
+
+      // Helper: draw logo on current page
+      const drawLogo = () => {
+        if (logoBase64) {
+          doc.addImage(logoBase64, 'PNG', LOGO_X, LOGO_Y, LOGO_W, LOGO_H);
+        }
+      };
+
+      // Helper: draw page header (logo + title + subtitle)
+      const drawPageHeader = (isFirstPage: boolean) => {
+        drawLogo();
+
+        // Title (centered)
+        doc.setFontSize(isFirstPage ? 20 : 14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${selectedFormType} Form Data`, pageWidth / 2, LOGO_Y + LOGO_H / 2 - (isFirstPage ? 2 : 0), { align: 'center' });
+
+        if (isFirstPage) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text(
+            `Generated on ${new Date().toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+            })}`,
+            pageWidth / 2,
+            LOGO_Y + LOGO_H / 2 + 6,
+            { align: 'center' }
+          );
+        }
+      };
+
+      // ---- First page header ----
+      drawPageHeader(true);
+
+      let yPosition = LOGO_Y + LOGO_H + 10;
+
+      // Table headers
+      const headers = getTableHeaders();
+      const colWidth = usableWidth / headers.length;
+
+      const drawTableHeaders = () => {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        headers.forEach((header, index) => {
+          doc.text(header, margin + index * colWidth + 2, yPosition, { maxWidth: colWidth - 4 });
+        });
+        yPosition += 10;
+      };
+
+      drawTableHeaders();
+
+      // ---- Data rows ----
+      doc.setFont('helvetica', 'normal');
+
+      formEntries.forEach((entry, entryIndex) => {
+        // New page if needed
+        if (yPosition > pageHeight - 30) {
+          doc.addPage();
+          yPosition = margin;
+          drawPageHeader(false);           // logo + compact title on every new page
+          yPosition = LOGO_Y + LOGO_H + 6;
+          drawTableHeaders();
+        }
+
+        // Alternating row background
+        if (entryIndex % 2 === 0) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(margin, yPosition - 5, usableWidth, 8, 'F');
+        }
+
+        let rowData: string[] = [];
+
+        switch (selectedFormType) {
+          case 'Monitoring':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              String(entry.session_number || '-'),
+              entry.session_type || '-',
+              `${entry.session_duration || 0} min`,
+              `${entry.session_intensity || 0}/10`,
+              String(entry.balls_bowled || 0),
+              (entry.comments || '-').substring(0, 30) + (entry.comments && entry.comments.length > 30 ? '...' : '')
+            ];
+            break;
+
+          case 'Wellness':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              `${entry.sleep_quality || 3}/5`,
+              `${entry.physical_readiness || 3}/5`,
+              `${entry.mood || 3}/5`,
+              `${entry.mental_alertness || 3}/5`,
+              `${entry.muscle_soreness || 3}/5`,
+              entry.menstrual_cycle || 'No',
+              (entry.comments || '-').substring(0, 20) + (entry.comments && entry.comments.length > 20 ? '...' : '')
+            ];
+            break;
+
+          case 'Hydration':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              entry.session_type || '-',
+              String(entry.session_number || '-'),
+              `${entry.pre_session_weight || 0} kg`,
+              `${entry.post_session_weight || 0} kg`,
+              `${entry.liquid_consumed || 0} ml`,
+              `${entry.urination_output || 0} ml`,
+              (entry.comments || '-').substring(0, 20) + (entry.comments && entry.comments.length > 20 ? '...' : '')
+            ];
+            break;
+
+          case 'Recovery':
+            rowData = [
+              new Date(entry.date).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' }),
+              entry.player_name || 'Unknown',
+              entry.recovery_methods && entry.recovery_methods.length > 0
+                ? entry.recovery_methods.join(', ').substring(0, 30)
+                : '-',
+              entry.injury_present || entry.injury_status || 'No',
+              (entry.comments || '-').substring(0, 30) + (entry.comments && entry.comments.length > 30 ? '...' : '')
+            ];
+            break;
+        }
+
+        rowData.forEach((cellData, colIndex) => {
+          let textColor = [0, 0, 0];
+
+          if (selectedFormType === 'Wellness' && colIndex >= 2 && colIndex <= 6) {
+            const value = parseInt(cellData.split('/')[0]) || 3;
+            if (colIndex === 6) {
+              textColor = value <= 2 ? [5, 150, 105] : value <= 3 ? [217, 119, 6] : [220, 38, 38];
+            } else {
+              textColor = value >= 4 ? [5, 150, 105] : value >= 3 ? [217, 119, 6] : [220, 38, 38];
+            }
+          } else if (selectedFormType === 'Monitoring' && colIndex === 5) {
+            const intensity = parseInt(cellData.split('/')[0]) || 0;
+            textColor = intensity >= 8 ? [220, 38, 38] : intensity >= 6 ? [217, 119, 6] : [5, 150, 105];
+          } else if (selectedFormType === 'Recovery' && colIndex === 3) {
+            textColor = (cellData === 'Yes' || cellData === 'Present') ? [220, 38, 38] : [5, 150, 105];
+          }
+
+          doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+          doc.setFontSize(8);
+          doc.text(cellData, margin + colIndex * colWidth + 2, yPosition, { maxWidth: colWidth - 4 });
+        });
+
+        doc.setTextColor(0, 0, 0);
+        yPosition += 8;
+      });
+
+      // Footer
+      yPosition += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text(
+        `Total Entries: ${formEntries.length} | Export Format: PDF`,
+        pageWidth / 2,
+        yPosition,
+        { align: 'center' }
+      );
+
+      doc.save(`${filename}.pdf`);
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
-  const handlePlayerChange = (player: string) => {
-    console.log('Player changed to:', player);
-    setSelectedPlayer(player);
-  };
+  const handleTeamChange = (team: string) => setSelectedTeam(team);
+  const handlePlayerChange = (player: string) => setSelectedPlayer(player);
+  const handleFormTypeChange = (formType: string) => setSelectedFormType(formType);
+  const handleDateChange = (date: string) => setSelectedDate(date);
 
-  const handleFormTypeChange = (formType: string) => {
-    console.log('Form type changed to:', formType);
-    setSelectedFormType(formType);
-  };
-
-  const handleDateChange = (date: string) => {
-    console.log('Date changed to:', date);
-    setSelectedDate(date);
-  };
-
-  // Initial data fetch
   useEffect(() => {
     fetchTeams();
     fetchFormTypes();
     fetchPlayers();
   }, []);
 
-  // Fetch form entries when filters change
   useEffect(() => {
-    console.log('Filters changed:', { selectedTeam, selectedPlayer, selectedFormType, selectedDate, playersLength: players.length });
-    if (players.length > 0) {
-      fetchFormEntries();
-    }
+    if (players.length > 0) fetchFormEntries();
   }, [players, selectedTeam, selectedPlayer, selectedFormType, selectedDate, fetchFormEntries]);
 
   return (
@@ -552,7 +493,7 @@ const Analysis: React.FC = () => {
           </div>
         </div>
 
-        <StatsCards/>
+        <StatsCards />
 
         <FiltersSection
           teams={teams}
@@ -587,7 +528,7 @@ const Analysis: React.FC = () => {
           </div>
         )}
 
-        {(!selectedTeam && !selectedPlayer) && (
+        {!selectedTeam && !selectedPlayer && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div className="text-gray-500">
               <Filter className="w-12 h-12 mx-auto mb-4 text-gray-400" />
