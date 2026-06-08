@@ -13,7 +13,7 @@ type FitnessCategoryEnum =
   | 'Sports Specific'
   | 'General Fitness';
 
-type BatchEnum = 'Baroda Cricket Association' | 'Delhi Capitals';
+type BatchEnum = 'All Stars Cricket' | 'Baroda Cricket Association' | 'Delhi Capitals';
 
 interface Program {
   id: string;

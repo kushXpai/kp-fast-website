@@ -15,7 +15,7 @@ type FitnessCategoryEnum =
   | 'Sports Specific'
   | 'General Fitness';
 
-type BatchEnum = 'Baroda Cricket Association' | 'Delhi Capitals';
+type BatchEnum = 'All Stars Cricket' | 'Baroda Cricket Association' | 'Delhi Capitals';
 
 interface Program {
   id: string;
@@ -83,7 +83,7 @@ const Programs: React.FC = () => {
     'General Fitness'
   ];
 
-  const batches: BatchEnum[] = ['Baroda Cricket Association', 'Delhi Capitals'];
+  const batches: BatchEnum[] = ['All Stars Cricket', 'Baroda Cricket Association', 'Delhi Capitals'];
 
   // Fetch programs and players
   useEffect(() => {

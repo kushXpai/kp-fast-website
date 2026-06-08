@@ -39,7 +39,7 @@ interface TestResult {
 
 const AllTests = () => {
   const [testDates, setTestDates] = useState<string[]>([]);
-  const [selectedBatch, setSelectedBatch] = useState('Delhi Capitals');
+  const [selectedBatch, setSelectedBatch] = useState('All Stars Cricket');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedTestResults, setSelectedTestResults] = useState<TestResult[] | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -231,7 +231,7 @@ const AllTests = () => {
               label=""
               value={selectedBatch}
               onChange={setSelectedBatch}
-              options={['Baroda Cricket Association', 'Delhi Capitals']}
+              options={['All Stars Cricket', 'Baroda Cricket Association', 'Delhi Capitals']}
             />
           </div>
           <div>

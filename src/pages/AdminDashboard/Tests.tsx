@@ -8,7 +8,7 @@ import React from 'react';
 
 export default function Tests() {
   const [activeTab, setActiveTab] = useState('create');
-  const [selectedTeam, setSelectedTeam] = useState('Delhi Capitals');
+  const [selectedTeam, setSelectedTeam] = useState('All Stars Cricket');
   const [testDate, setTestDate] = useState('07/19/2025');
   const [players, setPlayers] = useState<{ id: string; name: string }[]>([]);
   const [testResults, setTestResults] = useState<Record<string, Record<string, string>>>({});
@@ -244,7 +244,7 @@ export default function Tests() {
                       label=""
                       value={selectedTeam}
                       onChange={setSelectedTeam}
-                      options={['Delhi Capitals', 'Baroda Cricket Association']}
+                      options={['All Stars Cricket', 'Baroda Cricket Association', 'Delhi Capitals']}
                     />
                   </div>
                   <div>

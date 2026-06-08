@@ -210,6 +210,8 @@ export default function PendingApprovals({ onNavigate }: PendingApprovalsProps) 
         if (!batch) return 'bg-gray-100 text-gray-900 border border-gray-200';
         
         switch (batch.toLowerCase()) {
+            case 'all stars cricket':
+                return 'bg-green-100 text-green-900 border border-green-200';
             case 'baroda cricket association':
                 return 'bg-orange-100 text-orange-900 border border-orange-200';
             case 'delhi capitals':
@@ -322,6 +324,7 @@ export default function PendingApprovals({ onNavigate }: PendingApprovalsProps) 
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                         >
                             <option>All Batches</option>
+                            <option value="All Stars Cricket">All Stars Cricket</option>
                             <option value="Baroda Cricket Association">Baroda Cricket Association</option>
                             <option value="Delhi Capitals">Delhi Capitals</option>
                         </select>

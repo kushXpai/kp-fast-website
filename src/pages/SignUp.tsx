@@ -17,7 +17,7 @@ export default function SignUp() {
     batter_type: '',
     player_role: 'Batsman',
     bowler_type: '', // This will remain empty/null if not selected
-    batch: 'Baroda Cricket Association',
+    batch: 'All Stars Cricket',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -272,6 +272,7 @@ export default function SignUp() {
                       onChange={(e) => handleInputChange('batch', e.target.value)}
                       className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 appearance-none"
                     >
+                      <option value="All Stars Cricket" className="bg-gray-800">All Stars Cricket</option>
                       <option value="Baroda Cricket Association" className="bg-gray-800">Baroda Cricket Association</option>
                       <option value="Delhi Capitals" className="bg-gray-800">Delhi Capitals</option>
                     </select>

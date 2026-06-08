@@ -633,6 +633,7 @@ export default function Profile({ player }: ProfileProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     <option value="">Select batch</option>
+                    <option value="All Stars Cricket">All Stars Cricket</option>
                     <option value="Baroda Cricket Association">Baroda Cricket Association</option>
                     <option value="Delhi Capitals">Delhi Capitals</option>
                   </select>
