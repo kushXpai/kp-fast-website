@@ -437,17 +437,6 @@ const Analysis: React.FC = () => {
         yPosition += 8;
       });
 
-      // Footer
-      yPosition += 10;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'italic');
-      doc.text(
-        `Total Entries: ${formEntries.length} | Export Format: PDF`,
-        pageWidth / 2,
-        yPosition,
-        { align: 'center' }
-      );
-
       doc.save(`${filename}.pdf`);
 
     } catch (error) {
