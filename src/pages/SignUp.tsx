@@ -273,8 +273,8 @@ export default function SignUp() {
                       className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 appearance-none"
                     >
                       <option value="All Stars Cricket" className="bg-gray-800">All Stars Cricket</option>
-                      <option value="Baroda Cricket Association" className="bg-gray-800">Baroda Cricket Association</option>
-                      <option value="Delhi Capitals" className="bg-gray-800">Delhi Capitals</option>
+                      {/* <option value="Baroda Cricket Association" className="bg-gray-800">Baroda Cricket Association</option>
+                      <option value="Delhi Capitals" className="bg-gray-800">Delhi Capitals</option> */}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-300 pointer-events-none" />
                   </div>
